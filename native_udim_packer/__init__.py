@@ -1,0 +1,46 @@
+# SPDX-License-Identifier: GPL-2.0-or-later
+"""Native UDIM Packer.
+
+Packs UV islands of the active/selected objects into a user-defined UDIM
+tile grid (e.g. 1x1, 2x2, 4x1) using only Blender's built-in facilities:
+bmesh island detection, ``bpy.ops.uv.pack_islands`` as the packing engine
+(with CARDINAL 90-degree rotation), and manual integer tile offsets.
+
+No external engines, binaries or third-party libraries are used.
+"""
+
+bl_info = {
+    "name": "Native UDIM Packer",
+    "author": "Blender community",
+    "version": (0, 1, 4),
+    "blender": (5, 2, 0),
+    "location": "UV Editor > Sidebar (N) > UDIM tab",
+    "description": (
+        "Pack UV islands into a user-defined UDIM tile grid with native "
+        "Blender operators: balanced tile distribution, optional texel-density "
+        "normalization and 90-degree rotation"
+    ),
+    "category": "UV",
+}
+
+# Dotted version string, shown in the panel so the running build is
+# distinguishable at a glance.
+VERSION = ".".join(str(p) for p in bl_info["version"])
+
+from . import packer as _packer          # noqa: F401  (module imports)
+from . import islands as _islands        # noqa: F401
+from . import operators as _operators
+from . import ui as _ui
+
+
+def register():
+    # Log the loaded build so the running version is verifiable in any
+    # console (terminal launch, --background runs, crash logs).
+    print(f"Native UDIM Packer v{VERSION} registered")
+    _operators.register()
+    _ui.register()
+
+
+def unregister():
+    _ui.unregister()
+    _operators.unregister()

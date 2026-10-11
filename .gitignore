@@ -1,0 +1,24 @@
+# --- large / binary / third-party (kept on disk, not tracked) -------------
+
+# Portable Blender 5.2.2 install (~1.2 GB), used as the e2e target binary
+/blender-5.2.2-linux-x64/
+
+# UVPackmaster source kept for UX reference only (third-party code,
+# includes an embedded Python stdlib) - never committed
+/References/
+
+# Manual QA scenes (binary .blend files; the e2e suite generates its own
+# test meshes programmatically)
+/QA_Test_Files/
+
+# Release artifacts: one zip per release, rebuilt from native_udim_packer/
+/dist/
+
+# --- Python -----------------------------------------------------------------
+__pycache__/
+*.py[cod]
+
+# --- Blender scratch files ----------------------------------------------------
+*.blend1
+*.tmp
+.blender*
