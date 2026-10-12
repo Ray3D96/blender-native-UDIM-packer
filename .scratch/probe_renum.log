@@ -1,0 +1,18 @@
+00:00.180  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+A: enter edit (PlugMetal only)
+  before pack: n=954 first=[0, 1, 2] last=[951, 952, 953] cmin_idx=743
+  after pack : n=954 first=[0, 1, 2] last=[951, 952, 953] cmin_idx=743  result={'FINISHED'}
+  CHANGED: False
+B: enter multi-edit (all mesh objects)
+  before pack: n=954 cmin_idx=743
+  after pack : n=954 cmin_idx=743 result={'FINISHED'}
+  CHANGED: False
+C: multi-edit, partial selection
+  sel=940 before pack: cmin_idx=743
+  after pack : cmin_idx=743 result={'FINISHED'}
+  CHANGED: False
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

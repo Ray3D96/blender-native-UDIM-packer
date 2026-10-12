@@ -1,0 +1,20 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+A overflow(scale=False): n=3 worst_bbox_overlap=0.000000 x[0.0000,1.2000] y[0.0000,1.2000]
+   face0: x[0.0000,0.6000] y[0.0000,0.6000] size 0.6000x0.6000
+   face1: x[0.0000,0.6000] y[0.6000,1.2000] size 0.6000x0.6000
+   face2: x[0.6000,1.2000] y[0.0000,0.6000] size 0.6000x0.6000
+B fits(scale=False): n=2 worst_bbox_overlap=0.000000 x[0.0000,0.8000] y[0.0000,0.4000]
+   face0: x[0.0000,0.4000] y[0.0000,0.4000] size 0.4000x0.4000
+   face1: x[0.4000,0.8000] y[0.0000,0.4000] size 0.4000x0.4000
+C selection-scope: face0 before=(0.1, 0.1, 0.4, 0.4) after=(0.0, 0.0, 0.3, 0.3)
+C selection-scope: face1_untouched=True face2_untouched=True
+D cardinal(margin=0.02): n=3 worst_bbox_overlap=0.000000 x[0.0035,1.0620] y[0.0035,0.7110]
+   face0: x[0.0035,0.7035] y[0.0040,0.3540] size 0.7000x0.3500
+   face1: x[0.0035,0.7035] y[0.3610,0.7110] size 0.7000x0.3500
+   face2: x[0.7120,1.0620] y[0.0035,0.7035] size 0.3500x0.7000
+D cardinal: rotated_faces=[2]
+EXPPACK DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

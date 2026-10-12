@@ -3,9 +3,10 @@
 
 Packs UV islands of the active/selected objects into a user-defined UDIM
 tile grid (e.g. 1x1, 2x2, 4x1) using only Blender's built-in facilities:
-bmesh seam-aware island detection plus a pure-Python rigid layout solver
-(one global uniform scale, LPT-balanced tile assignment, greedy
-bottom-left placement with optional 90-degree rotation).
+bmesh seam-aware island detection, one global uniform scale solved by a
+pure-Python first-fit-decreasing tile assignment with a measured
+feasibility search, and per-tile placement by the built-in
+``uv.pack_islands`` operator (shape-aware, no overlaps).
 
 No external engines, binaries or third-party libraries are used.
 """
@@ -13,12 +14,12 @@ No external engines, binaries or third-party libraries are used.
 bl_info = {
     "name": "Native UDIM Packer",
     "author": "Blender community",
-    "version": (0, 1, 6),
+    "version": (0, 2, 0),
     "blender": (5, 2, 0),
     "location": "UV Editor > Sidebar (N) > UDIM tab",
     "description": (
         "Pack UV islands into a user-defined UDIM tile grid with native "
-        "Blender operators: balanced tile distribution, optional texel-density "
+        "Blender operators: sequential tile filling, optional texel-density "
         "normalization and 90-degree rotation"
     ),
     "category": "UV",
@@ -30,6 +31,7 @@ VERSION = ".".join(str(p) for p in bl_info["version"])
 
 from . import packer as _packer          # noqa: F401  (module imports)
 from . import islands as _islands        # noqa: F401
+from . import layout as _layout          # noqa: F401
 from . import operators as _operators
 from . import ui as _ui
 

@@ -1,0 +1,71 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+PROBE6 === face anatomy (original smart_project UVs) ===
+PROBE6 face 0: nloops=4 area_uv=+0.1012 normal=(-1.00,-0.00,+0.00) verts=[(-1.0, -1.0, -1.0), (-1.0, -1.0, 1.0), (-1.0, 1.0, 1.0), (-1.0, 1.0, -1.0)]
+PROBE6   loop0: vert=0 uv=(0.3238,0.3238)
+PROBE6   loop1: vert=1 uv=(0.0057,0.3238)
+PROBE6   loop2: vert=3 uv=(0.0057,0.0057)
+PROBE6   loop3: vert=2 uv=(0.3238,0.0057)
+PROBE6 face 1: nloops=4 area_uv=+0.1012 normal=(+0.00,+1.00,+0.00) verts=[(-1.0, 1.0, -1.0), (-1.0, 1.0, 1.0), (1.0, 1.0, 1.0), (1.0, 1.0, -1.0)]
+PROBE6   loop0: vert=2 uv=(0.3238,0.6533)
+PROBE6   loop1: vert=3 uv=(0.0057,0.6533)
+PROBE6   loop2: vert=7 uv=(0.0057,0.3352)
+PROBE6   loop3: vert=6 uv=(0.3238,0.3352)
+PROBE6 face 2: nloops=4 area_uv=+0.1012 normal=(+1.00,-0.00,+0.00) verts=[(1.0, 1.0, -1.0), (1.0, 1.0, 1.0), (1.0, -1.0, 1.0), (1.0, -1.0, -1.0)]
+PROBE6   loop0: vert=6 uv=(0.6533,0.3238)
+PROBE6   loop1: vert=7 uv=(0.3352,0.3238)
+PROBE6   loop2: vert=5 uv=(0.3352,0.0057)
+PROBE6   loop3: vert=4 uv=(0.6533,0.0057)
+PROBE6 face 3: nloops=4 area_uv=+0.1012 normal=(+0.00,-1.00,+0.00) verts=[(1.0, -1.0, -1.0), (1.0, -1.0, 1.0), (-1.0, -1.0, 1.0), (-1.0, -1.0, -1.0)]
+PROBE6   loop0: vert=4 uv=(0.6533,0.6533)
+PROBE6   loop1: vert=5 uv=(0.3352,0.6533)
+PROBE6   loop2: vert=1 uv=(0.3352,0.3352)
+PROBE6   loop3: vert=0 uv=(0.6533,0.3352)
+PROBE6 face 4: nloops=4 area_uv=+0.1012 normal=(+0.00,+0.00,-1.00) verts=[(-1.0, 1.0, -1.0), (1.0, 1.0, -1.0), (1.0, -1.0, -1.0), (-1.0, -1.0, -1.0)]
+PROBE6   loop0: vert=2 uv=(0.3238,0.6648)
+PROBE6   loop1: vert=6 uv=(0.3238,0.9828)
+PROBE6   loop2: vert=4 uv=(0.0057,0.9828)
+PROBE6   loop3: vert=0 uv=(0.0057,0.6648)
+PROBE6 face 5: nloops=4 area_uv=+0.1012 normal=(+0.00,-0.00,+1.00) verts=[(1.0, 1.0, 1.0), (-1.0, 1.0, 1.0), (-1.0, -1.0, 1.0), (1.0, -1.0, 1.0)]
+PROBE6   loop0: vert=7 uv=(0.6533,0.6648)
+PROBE6   loop1: vert=3 uv=(0.6533,0.9828)
+PROBE6   loop2: vert=1 uv=(0.3352,0.9828)
+PROBE6   loop3: vert=5 uv=(0.3352,0.6648)
+PROBE6 face 6: nloops=4 area_uv=+0.0253 normal=(-1.00,-0.00,+0.00) verts=[(5.5, -0.5, -0.5), (5.5, -0.5, 0.5), (5.5, 0.5, 0.5), (5.5, 0.5, -0.5)]
+PROBE6   loop0: vert=8 uv=(0.8238,0.1648)
+PROBE6   loop1: vert=9 uv=(0.6648,0.1648)
+PROBE6   loop2: vert=11 uv=(0.6648,0.0057)
+PROBE6   loop3: vert=10 uv=(0.8238,0.0057)
+PROBE6 face 7: nloops=4 area_uv=+0.0253 normal=(+0.00,+1.00,+0.00) verts=[(5.5, 0.5, -0.5), (5.5, 0.5, 0.5), (6.5, 0.5, 0.5), (6.5, 0.5, -0.5)]
+PROBE6   loop0: vert=10 uv=(0.8238,0.5057)
+PROBE6   loop1: vert=11 uv=(0.6648,0.5057)
+PROBE6   loop2: vert=15 uv=(0.6648,0.3467)
+PROBE6   loop3: vert=14 uv=(0.8238,0.3467)
+PROBE6 face 8: nloops=4 area_uv=+0.0253 normal=(+1.00,-0.00,+0.00) verts=[(6.5, 0.5, -0.5), (6.5, 0.5, 0.5), (6.5, -0.5, 0.5), (6.5, -0.5, -0.5)]
+PROBE6   loop0: vert=14 uv=(0.8238,0.3352)
+PROBE6   loop1: vert=15 uv=(0.6648,0.3352)
+PROBE6   loop2: vert=13 uv=(0.6648,0.1762)
+PROBE6   loop3: vert=12 uv=(0.8238,0.1762)
+PROBE6 face 9: nloops=4 area_uv=+0.0253 normal=(+0.00,-1.00,+0.00) verts=[(6.5, -0.5, -0.5), (6.5, -0.5, 0.5), (5.5, -0.5, 0.5), (5.5, -0.5, -0.5)]
+PROBE6   loop0: vert=12 uv=(0.8238,0.6762)
+PROBE6   loop1: vert=13 uv=(0.6648,0.6762)
+PROBE6   loop2: vert=9 uv=(0.6648,0.5172)
+PROBE6   loop3: vert=8 uv=(0.8238,0.5172)
+PROBE6 face 10: nloops=4 area_uv=+0.0253 normal=(+0.00,+0.00,-1.00) verts=[(5.5, 0.5, -0.5), (6.5, 0.5, -0.5), (6.5, -0.5, -0.5), (5.5, -0.5, -0.5)]
+PROBE6   loop0: vert=10 uv=(0.8238,0.6877)
+PROBE6   loop1: vert=14 uv=(0.8238,0.8467)
+PROBE6   loop2: vert=12 uv=(0.6648,0.8467)
+PROBE6   loop3: vert=8 uv=(0.6648,0.6877)
+PROBE6 face 11: nloops=4 area_uv=+0.0253 normal=(+0.00,-0.00,+1.00) verts=[(6.5, 0.5, 0.5), (5.5, 0.5, 0.5), (5.5, -0.5, 0.5), (6.5, -0.5, 0.5)]
+PROBE6   loop0: vert=15 uv=(0.9943,0.0057)
+PROBE6   loop1: vert=11 uv=(0.9943,0.1648)
+PROBE6   loop2: vert=9 uv=(0.8352,0.1648)
+PROBE6   loop3: vert=13 uv=(0.8352,0.0057)
+PROBE6 W1-natural: face=1 reverse=False written_signed_area=+0.6352 -> {'CANCELLED'}
+PROBE6 W1-reversed: face=1 reverse=True written_signed_area=-0.6352 -> {'CANCELLED'}
+PROBE6 W5-natural: face=5 reverse=False written_signed_area=+0.6352 -> {'FINISHED'}
+PROBE6 W5-reversed: face=5 reverse=True written_signed_area=-0.6352 -> {'FINISHED'}
+PROBE6 DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

@@ -1,0 +1,23 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+DBG round S=2.505894 tiles_used=[0, 1, 2, 3, 4, 5]
+DBG   tile 0 (udim 1001): ['faces=1 ref=(0.318,0.318) atS=(0.797,0.797)', 'faces=1 ref=(0.159,0.159) atS=(0.399,0.399)']
+DBG   tile 1 (udim 1002): ['faces=1 ref=(0.318,0.318) atS=(0.797,0.797)', 'faces=1 ref=(0.159,0.159) atS=(0.399,0.399)']
+DBG   tile 2 (udim 1003): ['faces=1 ref=(0.318,0.318) atS=(0.797,0.797)', 'faces=1 ref=(0.159,0.159) atS=(0.399,0.399)']
+DBG   tile 3 (udim 1011): ['faces=1 ref=(0.318,0.318) atS=(0.797,0.797)', 'faces=1 ref=(0.159,0.159) atS=(0.399,0.399)']
+DBG   tile 4 (udim 1012): ['faces=1 ref=(0.318,0.318) atS=(0.797,0.797)', 'faces=1 ref=(0.159,0.159) atS=(0.399,0.399)']
+DBG   tile 5 (udim 1013): ['faces=1 ref=(0.318,0.318) atS=(0.797,0.797)', 'faces=1 ref=(0.159,0.159) atS=(0.399,0.399)']
+DBG [pre-pack] sel face idx=5 bbox=(0.0000,0.0000)-(0.7970,0.7970)
+DBG [pre-pack] sel face idx=8 bbox=(0.0000,0.0000)-(0.3985,0.3985)
+DBG pack_islands({'rotate': True, 'rotate_method': 'CARDINAL', 'margin': 0.008, 'scale': False}) -> {'FINISHED'}
+DBG [pre-pack] sel face idx=1 bbox=(0.0000,0.0000)-(0.7970,0.7970)
+DBG [pre-pack] sel face idx=9 bbox=(0.0000,0.0000)-(0.3985,0.3985)
+DBG pack_islands({'rotate': True, 'rotate_method': 'CARDINAL', 'margin': 0.008, 'scale': False}) -> {'CANCELLED'}
+DBG [post-cancel] sel face idx=1 bbox=(0.0000,0.0000)-(0.7970,0.7970)
+DBG [post-cancel] sel face idx=9 bbox=(0.0000,0.0000)-(0.3985,0.3985)
+DBG round FAILED at S=2.505894: RuntimeError("uv.pack_islands returned {'CANCELLED'} while packing tile 1002; every involved object (t8) must be visible in the view layer with an active UV map")
+DBG result: {'error': "uv.pack_islands returned {'CANCELLED'} while packing tile 1002; every involved object (t8) must be visible in the view layer with an active UV map", 'errors': {}}
+DBG DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

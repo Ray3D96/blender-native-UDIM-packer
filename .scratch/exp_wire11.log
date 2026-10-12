@@ -1,0 +1,12 @@
+00:00.220  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+W11 start: hide_get=True hide_viewport=False visible=False
+W11 baseline hidden: hide_get=True visible=False -> {'CANCELLED'}
+W11 after hide_set(False): hide_get=False visible=True -> {'FINISHED'}
+W11 restored hidden (should fail): hide_get=True visible=False -> {'CANCELLED'}
+W11 RESULT: fix works = True
+W11DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

@@ -1,322 +1,378 @@
-"""Standalone tests for native_udim_packer.layout (no Blender needed).
+# SPDX-License-Identifier: GPL-2.0-or-later
+"""Unit tests for the v4 layout module (pure Python, no bpy).
 
-Run:  python3 .scratch/test_layout.py
+Run with any plain Python 3.10+:  python3 .scratch/test_layout.py
+Loads native_udim_packer/layout.py directly from its file path so the
+package __init__ (which imports bpy) is never executed.
 """
 import importlib.util
-import math
 import os
-import random
 import sys
+import time
 
-# Load layout.py directly (it is pure stdlib) to avoid the package
-# __init__ importing bpy.
-_spec = importlib.util.spec_from_file_location(
-    "layout",
-    os.path.join(os.path.dirname(__file__), "..",
-                 "native_udim_packer", "layout.py"))
-layout = importlib.util.module_from_spec(_spec)
-sys.modules["layout"] = layout
-_spec.loader.exec_module(layout)
-Item, solve, layout_stats = layout.Item, layout.solve, layout.layout_stats
+HERE = os.path.dirname(os.path.abspath(__file__))
+LAYOUT = os.path.join(HERE, "..", "native_udim_packer", "layout.py")
 
-EPS = 1e-6
-FAILS = []
+spec = importlib.util.spec_from_file_location("udim_layout", LAYOUT)
+L = importlib.util.module_from_spec(spec)
+sys.modules["udim_layout"] = L   # required by dataclasses on 3.14+
+spec.loader.exec_module(L)
+
+PASS = 0
+FAIL = 0
 
 
 def check(name, cond, detail=""):
-    status = "PASS" if cond else "FAIL"
-    print(f"[{status}] {name} {detail}")
-    if not cond:
-        FAILS.append(name)
+    global PASS, FAIL
+    if cond:
+        PASS += 1
+        print(f"  ok  {name}")
+    else:
+        FAIL += 1
+        print(f" FAIL {name}  {detail}")
 
 
-def audit(S, placements, items_by_index, grid_x, grid_y, margin):
-    """Containment + gap + exactly-once. Returns (ok, problems).
+I = L.Item
 
-    Bbox overlap is only a hard error for rect-rect pairs: two concave
-    shapes may legitimately interlock inside overlapping bboxes; those are
-    verified at polygon level by audit_shapes().
-    """
-    probs = []
-    seen = set()
-    per_tile: dict[tuple[int, int], list] = {}
-    for p in placements:
-        it = items_by_index[p.item]
-        if p.item in seen:
-            probs.append(f"item {p.item} placed twice")
-        seen.add(p.item)
-        if not (0 <= p.tile_u < grid_x and 0 <= p.tile_v < grid_y):
-            probs.append(f"item {p.item} in out-of-grid tile "
-                         f"({p.tile_u},{p.tile_v}) for {grid_x}x{grid_y}")
-        # final mapping: uv = tile_origin + margin + content_coord * S;
-        # tile (tu, tv) spans [tu+m, tu+1-m] x [tv+m, tv+1-m].
-        x0 = p.tile_u + margin + p.x0 * S
-        y0 = p.tile_v + margin + p.y0 * S
-        x1 = x0 + p.w * S
-        y1 = y0 + p.h * S
-        if not (p.tile_u + margin - EPS <= x0
-                and p.tile_v + margin - EPS <= y0
-                and x1 <= p.tile_u + 1.0 - margin + EPS
-                and y1 <= p.tile_v + 1.0 - margin + EPS):
-            probs.append(f"item {p.item} out of tile bounds "
-                         f"[{x0:.4f},{y0:.4f},{x1:.4f},{y1:.4f}]")
-        per_tile.setdefault((p.tile_u, p.tile_v), []).append(
-            (p.item, bool(it.outers), x0, y0, x1, y1))
-    missing = set(items_by_index) - seen
-    if missing:
-        probs.append(f"unplaced items: {sorted(missing)[:5]}...")
-    for t, rects in per_tile.items():
-        for i in range(len(rects)):
-            for j in range(i + 1, len(rects)):
-                a, b = rects[i], rects[j]
-                if a[1] or b[1]:
-                    continue  # shaped: polygon-level check elsewhere
-                ox = min(a[4], b[4]) - max(a[2], b[2])
-                oy = min(a[5], b[5]) - max(a[3], b[3])
-                if ox > 1e-9 and oy > 1e-9:
-                    probs.append(
-                        f"tile {t}: overlap items {a[0]} & {b[0]} "
-                        f"(ox={ox:.5f} oy={oy:.5f})")
-    return (not probs, probs)
+# ---------------------------------------------------------------- tile_order
+check("tile_order 3x1", L.tile_order(3, 1) == [(0, 0), (1, 0), (2, 0)])
+check("tile_order 2x2", L.tile_order(2, 2) == [(0, 0), (1, 0), (0, 1), (1, 1)])
+check("tile_order 1x3", L.tile_order(1, 3) == [(0, 0), (0, 1), (0, 2)])
 
+# ------------------------------------------------------------------ max_scale
+check("max_scale spans interior",
+      abs(L.max_scale(0.98, [I(0, 0.49, 0.2)]) - 2.0) < 1e-12)
+check("max_scale uses longer side",
+      abs(L.max_scale(1.0, [I(0, 0.2, 0.5), I(1, 0.6, 0.1)]) - (1.0 / 0.6)) < 1e-12)
+check("max_scale empty", L.max_scale(1.0, []) == 1.0)
+check("max_scale degenerate", L.max_scale(1.0, [I(0, 0.0, 0.0)]) == 1.0)
 
-def make_items(seed, n, size_lo=0.02, size_hi=0.3):
-    rnd = random.Random(seed)
-    items = []
-    for i in range(n):
-        w = rnd.uniform(size_lo, size_hi)
-        h = rnd.uniform(size_lo, size_hi)
-        items.append(Item(i, w, h))
-    return items
+# ----------------------------------------------------------------- assign_ffd
+# Single tile: everything in it when capacity allows.
+a = L.assign_ffd([I(0, 1, 1), I(1, 0.5, 0.5)], 1, 2.0)
+check("ffd single tile", a == {0: 0, 1: 0}, str(a))
 
+# Two tiles, FFD order: largest first into tile 0; second island goes to the
+# earliest tile that accepts it (tile 0 if load allows).
+a = L.assign_ffd([I(0, 0.5, 0.5), I(1, 0.4, 0.4)], 2, 1.0)
+check("ffd fill first tile", a == {0: 0, 1: 0}, str(a))
 
-def run_case(name, items, gx, gy, margin, rotate):
-    S, placements = solve(items, gx, gy, margin, rotate)
-    by_idx = {it.index: it for it in items}
-    ok, probs = audit(S, placements, by_idx, gx, gy, margin)
-    st = layout_stats(S, placements, by_idx, gx, gy)
-    fills = sorted(st["per_tile_fill"].values())
-    detail = (f"S={S:.4f} tiles_used={st['tiles_used']}/{gx*gy} "
-              f"fill min={fills[0]:.3f} max={fills[-1]:.3f} "
-              f"avg={sum(fills)/len(fills):.3f}") if fills else "no placements"
-    check(name, ok and S > 0, detail + (" | " + "; ".join(probs[:4])
-                                        if probs else ""))
-    return S, st
+# Capacity tight: 0.5^2 + 0.4^2 = 0.41 > eta*cap=0.92 -> second goes to tile 1.
+a = L.assign_ffd([I(0, 0.9, 0.9), I(1, 0.5, 0.5)], 2, 1.0)
+check("ffd opens second tile", a == {0: 0, 1: 1}, str(a))
 
+# Sequential filling: with 3 tiles and content that needs all three, the
+# earliest tiles are full before the last one is opened.
+items = [I(0, 0.9, 0.9), I(1, 0.6, 0.6), I(2, 0.6, 0.6), I(3, 0.5, 0.5)]
+a = L.assign_ffd(items, 3, 1.0)
+check("ffd sequential", a is not None and a[0] == 0 and max(a.values()) == 2
+      and len(set(a.values())) == 3, str(a))
 
-# --- T1-like: 18 rectangles from the e2e mesh (approx real bboxes) --------
-t1_items = [
-    Item(0, 0.36, 0.30), Item(1, 0.24, 0.20), Item(2, 0.24, 0.20),
-    Item(3, 0.18, 0.15), Item(4, 0.18, 0.15), Item(5, 0.16, 0.13),
-    Item(6, 0.14, 0.12), Item(7, 0.13, 0.11), Item(8, 0.12, 0.10),
-    Item(9, 0.11, 0.09), Item(10, 0.10, 0.08), Item(11, 0.09, 0.07),
-    Item(12, 0.08, 0.06), Item(13, 0.07, 0.05), Item(14, 0.06, 0.05),
-    Item(15, 0.05, 0.04), Item(16, 0.04, 0.03), Item(17, 0.03, 0.02),
-]
-S1, st1 = run_case("T1-like 2x2", t1_items, 2, 2, 0.005, True)
-# Density measured the principled way: S vs the area upper bound
-# S <= sqrt(B * W^2 / sum(a_i)).  A good greedy should reach >= 75% of it
-# in the dense regime (N > B).
-W1 = 1 - 2 * 0.005
-ub1 = math.sqrt(4 * W1 * W1 / sum(i.w * i.h for i in t1_items))
-check("T1-like S >= 75% of area bound", S1 >= 0.75 * ub1,
-      f"S={S1:.3f} bound={ub1:.3f} ratio={S1/ub1:.2f}")
+# Impossible: one island bigger than any tile capacity.
+a = L.assign_ffd([I(0, 2.0, 2.0)], 3, 1.0)
+check("ffd impossible -> None", a is None)
 
-# --- asymmetric grids: flat index must map column-first (regression) --------
-run_case("T1-like 4x1 strip", t1_items, 4, 1, 0.005, True)
-_, pl1c = solve(t1_items, 4, 1, 0.005, True)
-check("4x1 placements stay in grid row", all(p.tile_v == 0 for p in pl1c),
-      f"tiles={sorted({(p.tile_u, p.tile_v) for p in pl1c})}")
-_, pl1d = solve(t1_items, 1, 4, 0.005, True)
-check("1x4 placements stay in grid column", all(p.tile_u == 0 for p in pl1d),
-      f"tiles={sorted({(p.tile_u, p.tile_v) for p in pl1d})}")
+# Area fits but the long side does not span the interior: must NOT be
+# placed into an empty tile (geometric fit, not area, decides).
+a = L.assign_ffd([I(0, 1.2, 0.5)], 2, 1.0)   # area .6 < cap 1.0, maxdim 1.2 > 1.0
+check("ffd maxdim-alone rejection", a is None, str(a))
 
-# --- single tile: approach native reference --------------------------------
-S2, st2 = run_case("T1-like 1x1", t1_items, 1, 1, 0.005, True)
-check("1x1 fill >= 0.70 (native ref 0.727)",
-      st2["per_tile_fill"] and list(st2["per_tile_fill"].values())[0] >= 0.70,
-      f"fill={list(st2['per_tile_fill'].values())}")
+# Impossible at capacity but possible with more tiles.
+items = [I(k, 0.9, 0.9) for k in range(4)]
+a = L.assign_ffd(items, 2, 1.0)
+check("ffd overflow -> None", a is None, str(a))
 
-# --- big case: ~250 items (user QA scene scale), 2x2 ------------------------
-big = make_items(42, 250)
-S3, st3 = run_case("big 250-item 2x2", big, 2, 2, 0.005, True)
-fills = sorted(st3["per_tile_fill"].values())
-check("big: balanced fills (max/min < 1.5)",
-      len(fills) == 4 and fills[-1] / max(fills[0], 1e-9) < 1.5,
-      f"fills={[round(f, 3) for f in fills]}")
+# Empty items -> empty assignment (not None).
+check("ffd empty", L.assign_ffd([], 3, 1.0) == {})
 
-# --- huge grid: 10x32 = 320 tiles, 250 items --------------------------------
-S4, st4 = run_case("big 250-item 10x32", big, 10, 32, 0.005, True)
+# Determinism: same input twice -> same output.
+items = [I(k, 0.3 + 0.01 * k, 0.2 + 0.01 * k) for k in range(20)]
+a1 = L.assign_ffd(items, 4, 1.0)
+a2 = L.assign_ffd(items, 4, 1.0)
+check("ffd deterministic", a1 == a2)
 
-# --- over-capacity: total area >> grid capacity -> S < 1 --------------------
-huge = [Item(i, 0.4, 0.4) for i in range(20)]  # 3.2 units^2 into 4 tiles
-S5, st5 = run_case("over-capacity 20x0.4sq 2x2", huge, 2, 2, 0.01, True)
-check("over-capacity shrinks (S < 1)", S5 < 1.0, f"S={S5:.4f}")
+# Tie-break: equal area -> longer side first (index order otherwise).
+items = [I(0, 0.5, 0.2), I(1, 0.4, 0.25), I(2, 0.5, 0.2)]  # areas .1/.1/.1
+a = L.assign_ffd(items, 1, 1.0)
+check("ffd tie-break", a == {0: 0, 1: 0, 2: 0}, str(a))
 
-# --- single item ------------------------------------------------------------
-one = [Item(0, 0.7, 0.3)]
-S6, st6 = run_case("single wide item 1x1", one, 1, 1, 0.005, True)
-# width-limited: content extent E = max(w,h) = 0.7 -> S* = W / E, and the
-# item's long edge exactly spans the tile interior [m, 1-m].
-W = 1 - 0.01
-expect_S = W / 0.7
-check("single item scale exact", abs(S6 - expect_S) < 1e-9,
-      f"S={S6:.6f} expect={expect_S:.6f}")
+# --------------------------------------------------------------- next_scale
+m = 0.02
+interior = 1.0 - 2 * m          # 0.96
+hi = 1.0 - m                    # 0.98
 
-# --- rotation off: tall items must not rotate --------------------------------
-tall = [Item(0, 0.1, 0.8), Item(1, 0.1, 0.8), Item(2, 0.1, 0.8)]
-S7, pl7 = solve(tall, 1, 1, 0.005, False)
-check("rotate off keeps orientation", all(not p.rotated for p in pl7))
-ok7, probs7 = audit(S7, pl7, {t.index: t for t in tall}, 1, 1, 0.005)
-check("rotate off valid layout", ok7, "; ".join(probs7[:3]))
+s, ok = L.next_scale(1.0, interior, [(0.0, 0.0, 0.5, 0.5)])
+check("next_scale fit", ok and s == 1.0)
 
-# --- determinism -------------------------------------------------------------
-r_a = solve(big, 2, 2, 0.005, True)
-r_b = solve(big, 2, 2, 0.005, True)
-check("deterministic", r_a == r_b)
+s, ok = L.next_scale(1.0, interior, [(0.0, 0.0, hi - 1e-5, 0.5)])
+check("next_scale at-bound fits (tol)", ok and s == 1.0, f"{s} {ok}")
 
-# --- margin=0 -----------------------------------------------------------------
-S8, pl8 = solve(t1_items, 2, 2, 0.0, True)
-ok8, probs8 = audit(S8, pl8, {t.index: t for t in t1_items}, 2, 2, 0.0)
-check("margin=0 valid", ok8 and S8 > 0, "; ".join(probs8[:3]))
+s, ok = L.next_scale(1.0, interior, [(0.0, 0.0, hi + 1e-3, 0.5)])
+check("next_scale overflow shrinks", not ok and s < 1.0)
+# expected factor: (hi / (hi+1e-3)) * 0.995
+exp = 1.0 * (hi / (hi + 1e-3)) * 0.995
+check("next_scale overflow magnitude", abs(s - exp) < 1e-12, f"{s} vs {exp}")
 
-# --- shape-aware: hole nesting --------------------------------------------------
-sq_outer = ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0))
-hole4 = ((0.3, 0.3), (0.7, 0.3), (0.7, 0.7), (0.3, 0.7))
-A_hole = Item(0, 1.0, 1.0, outers=(sq_outer,), holes=(hole4,))
-B_small = Item(1, 0.38, 0.38)
-S9, pl9 = solve([A_hole, B_small], 1, 1, 0.0, True)
-check("hole nesting: S stays W/E=1.0 (B inside hole)",
-      abs(S9 - 1.0) < 1e-9, f"S={S9:.6f}")
-pb9 = [p for p in pl9 if p.item == 1][0]
-check("hole nesting: B centred on the hole",
-      abs(pb9.x0 + 0.19 - 0.5) < 1e-9 and abs(pb9.y0 + 0.19 - 0.5) < 1e-9,
-      f"x0={pb9.x0:.4f} y0={pb9.y0:.4f}")
+# y-axis overflow dominates.
+s, ok = L.next_scale(1.0, interior, [(0.0, 0.0, 0.5, hi + 0.1)])
+check("next_scale y overflow", not ok and abs(s - hi / (hi + 0.1) * 0.995) < 1e-12)
 
+# Worst tile dominates when several overflow.
+s, ok = L.next_scale(1.0, interior, [(0, 0, hi + 0.05, 0), (0, 0, hi + 0.2, 0)])
+check("next_scale worst tile", not ok and abs(s - hi / (hi + 0.2) * 0.995) < 1e-12)
 
-# --- shape-aware: concave interlock beats bbox packing ---------------------------
-L_outer = ((0.0, 0.0), (1.0, 0.0), (1.0, 0.5), (0.5, 0.5), (0.5, 1.0), (0.0, 1.0))
-A_L = Item(0, 1.0, 1.0, outers=(L_outer,))
-B_notch = Item(1, 0.48, 0.48)
-S10, pl10 = solve([A_L, B_notch], 1, 1, 0.005, True)
-A_Lr = Item(0, 1.0, 1.0)
-B_notchr = Item(1, 0.48, 0.48)
-S10r, _ = solve([A_Lr, B_notchr], 1, 1, 0.005, True)
-check("concave interlock: shaped S > bbox S", S10 > S10r + 1e-9,
-      f"S_shaped={S10:.4f} S_bbox={S10r:.4f}")
-pb10 = [p for p in pl10 if p.item == 1][0]
-check("concave interlock: B sits in the notch",
-      pb10.x0 >= 0.5 - EPS and pb10.y0 >= 0.5 - EPS,
-      f"x0={pb10.x0:.4f} y0={pb10.y0:.4f}")
+# Low-side-only oddity cannot claim feasibility via extent growth; the
+# defensive branch keeps shrinking deterministically.
+s, ok = L.next_scale(1.0, interior, [(0.0, 0.0, hi + 1e-3, hi + 2e-3)])
+check("next_scale double overflow", not ok and s < 1.0)
 
+# -------------------------------------------------------------------- solve
+# Fake oracle: each tile's extent grows linearly with S (content scales up),
+# with a packing-efficiency factor so the search must actually shrink.
+def make_oracle(items, n_tiles, k):
+    def oracle(assign, S):
+        ext = [None] * n_tiles
+        for t in sorted(set(assign.values())):
+            load = sum(it.area for it in items if assign[it.index] == t)
+            v = load * S * k
+            e = ext[t] if ext[t] is not None else [0.0, 0.0, 0.0, 0.0]
+            e[2] = max(e[2], v)
+            e[3] = max(e[3], v * 0.8)
+            ext[t] = e
+        return ext
+    return oracle
 
-# --- shape-aware: rotation chirality matches writeback (CCW) ---------------------
-L2 = ((0.0, 0.0), (2.0, 0.0), (2.0, 1.0), (1.0, 1.0), (1.0, 0.5), (0.0, 0.5))
-it_chir = Item(0, 2.0, 1.0, outers=(L2,))
-sh_r = layout._build_shape(it_chir, True)
-exp_loop = tuple((1.0 - y, x) for (x, y) in L2)
-check("rotation: footprint swapped", sh_r.w == 1.0 and sh_r.h == 2.0,
-      f"w={sh_r.w} h={sh_r.h}")
-check("rotation: CCW mapping (x,y)->(h-y,x)",
-      set(sh_r.outers[0]) == set(exp_loop),
-      f"got={sh_r.outers[0]}")
+items = [I(0, 0.5, 0.5), I(1, 0.4, 0.4), I(2, 0.3, 0.3)]
+oracle = make_oracle(items, 2, k=3.0)
+res = L.solve(items, 2, 1, m, oracle)
+S_final, assign_final, rounds, feasible = res
+check("solve converges", feasible, f"S={S_final} rounds={rounds}")
+# The real invariant: re-measuring the final state must be feasible.
+_, ok_final = L.next_scale(S_final, interior,
+                           [e for e in oracle(assign_final, S_final)
+                            if e is not None])
+check("solve final state feasible", ok_final, f"S={S_final}")
+check("solve rounds small", rounds <= 6, f"rounds={rounds}")
 
+# Single tile, content that fits at S_max immediately.
+items1 = [I(0, 0.4, 0.3)]
+res = L.solve(items1, 1, 1, m, lambda a, S: [[0.0, 0.0, 0.5, 0.5]])
+check("solve immediate fit", res[3] and res[2] == 1
+      and abs(res[0] - (interior / 0.4)) < 1e-9)
 
-# --- shape-aware audit: reconstruct final polygons, test no overlap --------------
-def audit_shapes(S, placements, items_by_index, grid_x, grid_y, margin):
-    probs = []
-    polys = []
-    for p in placements:
-        it = items_by_index[p.item]
-        if not it.outers:
-            continue
-        sh = layout._build_shape(it, p.rotated)
-        tx0 = p.tile_u + margin
-        ty0 = p.tile_v + margin
-        tx1 = p.tile_u + 1.0 - margin
-        ty1 = p.tile_v + 1.0 - margin
+# Convergence failure raises RuntimeError (oracle never fits).
+def oracle_never(assign, S):
+    return [[0.0, 0.0, 5.0, 5.0]]
+try:
+    L.solve([I(0, 0.5, 0.5)], 1, 1, m, oracle_never, max_rounds=5)
+    check("solve non-convergence raises", False)
+except RuntimeError:
+    check("solve non-convergence raises", True)
 
-        def xform(lp):
-            return tuple((tx0 + (p.x0 + vx) * S, ty0 + (p.y0 + vy) * S)
-                         for (vx, vy) in lp)
+# Determinism of the full search.
+oracle_det = make_oracle(items, 3, k=2.0)
+r1 = L.solve(items, 3, 1, m, oracle_det)
+r2 = L.solve(items, 3, 1, m, oracle_det)
+check("solve deterministic", r1[0] == r2[0] and r1[1] == r2[1])
 
-        outers = [xform(lp) for lp in sh.outers]
-        holes = [xform(lp) for lp in sh.holes]
-        for lp in outers + holes:
-            for (x, y) in lp:
-                if not (tx0 - EPS <= x <= tx1 + EPS
-                        and ty0 - EPS <= y <= ty1 + EPS):
-                    probs.append(f"item {p.item} vertex out of tile "
-                                 f"({x:.4f},{y:.4f})")
-        polys.append((p.item, layout._Shape(p.w, p.h,
-                                            tuple(outers), tuple(holes))))
-    for i in range(len(polys)):
-        for j in range(i + 1, len(polys)):
-            a, b = polys[i], polys[j]
-            if layout._overlap(a[1], (0.0, 0.0), b[1], (0.0, 0.0)):
-                probs.append(f"shape overlap items {a[0]} & {b[0]}")
-    return (not probs, probs)
+# Scale-invariant overflow (packer efficiency bound below the greedy FFD
+# load target): shrinking S alone can never fix a greedily filled tile;
+# only spreading the content thinner can.  The full eta ladder finds that
+# spread within one shrink step and lands near S_max, while a greedy-only
+# search crawls down to a much smaller scale.
+decay_items = [I(0, 0.4, 0.4)] + [I(k + 1, 0.05, 0.05) for k in range(30)]
 
+def oracle_load(assign, S):
+    cap = (interior / S) ** 2
+    ext = [None] * 3
+    for t in sorted(set(assign.values())):
+        load = sum(it.area for it in decay_items if assign[it.index] == t)
+        v = hi * (load / (0.85 * cap)) ** 0.5
+        e = ext[t] if ext[t] is not None else [0.0, 0.0, 0.0, 0.0]
+        e[2] = max(e[2], v)
+        e[3] = max(e[3], v)
+        ext[t] = e
+    return ext
 
-def make_shape_items(seed, n):
-    rnd = random.Random(seed)
-    items = []
-    for i in range(n):
-        w = rnd.uniform(0.1, 0.5)
-        h = rnd.uniform(0.1, 0.5)
-        kind = rnd.random()
-        if kind < 0.4:  # L-shape (notch cut from top-right)
-            nw = rnd.uniform(0.3, 0.6) * w
-            nh = rnd.uniform(0.3, 0.6) * h
-            loop = ((0.0, 0.0), (w, 0.0), (w, h - nh), (w - nw, h - nh),
-                    (w - nw, h), (0.0, h))
-            items.append(Item(i, w, h, outers=(loop,)))
-        elif kind < 0.7:  # square with a centred hole
-            hw = rnd.uniform(0.25, 0.4) * w
-            hh = rnd.uniform(0.25, 0.4) * h
-            ox = (w - hw) / 2.0
-            oy = (h - hh) / 2.0
-            loop = ((0.0, 0.0), (w, 0.0), (w, h), (0.0, h))
-            hole = ((ox, oy), (ox + hw, oy), (ox + hw, oy + hh), (ox, oy + hh))
-            items.append(Item(i, w, h, outers=(loop,), holes=(hole,)))
-        else:  # plain rectangle
-            items.append(Item(i, w, h))
-    return items
+res_d = L.solve(decay_items, 3, 1, m, oracle_load)
+check("solve ladder converges", res_d[3], f"rounds={res_d[2]}")
+check("solve ladder lands near S_max", res_d[0] > 2.0, f"S={res_d[0]:.4f}")
+check("solve ladder fast", res_d[2] <= 3, f"rounds={res_d[2]}")
+res_nd = L.solve(decay_items, 3, 1, m, oracle_load, max_rounds=48,
+                 etas=(0.92,))      # greedy ladder entry only
+check("solve greedy-only lands smaller",
+      res_nd[3] and res_nd[0] < res_d[0] * 0.95,
+      f"ladder S={res_d[0]:.4f} vs greedy S={res_nd[0]:.4f}")
+print(f"  (info) ladder: S={res_d[0]:.4f} rounds={res_d[2]} | "
+      f"greedy-only: S={res_nd[0]:.4f} rounds={res_nd[2]}")
 
+# ------------------------------------------------------------- integration-ish
+# Simulate the real QA-scale scenario: 268 islands, 3 tiles, margin 0.
+# Oracle approximates the native packer: a tile overflows iff its assigned
+# total reference area * S^2 exceeds the interior area (plus packing loss).
+import math
+rng_items = []
+a = 0.5
+for k in range(268):
+    w = a * (0.05 + ((k * 37) % 100) / 100.0 * 0.95)
+    h = w * (0.4 + ((k * 53) % 100) / 100.0 * 0.6)
+    rng_items.append(I(k, w, h))
 
-shp = make_shape_items(1234, 120)
-run_case("shape scene 120-item 3x1 margin=0", shp, 3, 1, 0.0, True)
-S11b, pl11 = solve(shp, 3, 1, 0.0, True)
-ok11, probs11 = audit_shapes(S11b, pl11, {t.index: t for t in shp}, 3, 1, 0.0)
-check("shape scene: polygon-level no overlap + containment", ok11,
-      "; ".join(probs11[:4]))
-r_c = solve(shp, 3, 1, 0.0, True)
-r_d = solve(shp, 3, 1, 0.0, True)
-check("shape scene: deterministic", r_c == r_d)
+def oracle_real(assign, S):
+    interior_area = interior ** 2
+    ext = [None] * 3
+    for t in sorted(set(assign.values())):
+        load = sum(it.area for it in rng_items if assign[it.index] == t)
+        # packing efficiency ~0.85; overflow when S^2*load/0.85 > interior_area
+        v = math.sqrt(load * S * S / 0.85 / interior_area)
+        e = ext[t] if ext[t] is not None else [0.0, 0.0, 0.0, 0.0]
+        e[2] = max(e[2], v)
+        e[3] = max(e[3], v)
+        ext[t] = e
+    return ext
 
-# --- rectangle regression: shapeless pack_tile is the classic engine ------------
-rect_items = make_items(99, 60)
-E_a, pl_a = layout.pack_tile(rect_items, True, 0.005)
-E_b, pl_b = layout._pack_tile_rect(rect_items, True, 0.005)
-check("rectangle regression: pack_tile == _pack_tile_rect",
-      E_a == E_b and pl_a == pl_b)
+res = L.solve(rng_items, 3, 1, m, oracle_real)
+S_final, assign_final, rounds, feasible = res
+check("solve 268 islands converges", feasible, f"rounds={rounds}")
+used = sorted(set(assign_final.values()))
+check("solve 268 uses tiles sequentially (prefix)",
+      used == list(range(len(used))), str(used))
+loads = [0.0] * 3
+for it in rng_items:
+    loads[assign_final[it.index]] += it.area
+max_area = max(it.area for it in rng_items)
+check("solve 268 first tile fullest (FFD bound)",
+      loads[0] >= loads[-1] - max_area,
+      f"loads={[round(x, 4) for x in loads]}")
+print(f"  (info) S*={S_final:.6f} rounds={rounds} "
+      f"used={used} loads={[round(x, 4) for x in loads]}")
 
-# --- performance ---------------------------------------------------------------
-import time  # noqa: E402
+# --------------------------------------------------------- polygons_overlap
+SQ = lambda x, y, s: [(x, y), (x + s, y), (x + s, y + s), (x, y + s)]
+
+check("overlap disjoint",
+      not L.polygons_overlap([SQ(0, 0, 0.4)], [SQ(0.5, 0.5, 0.4)]))
+check("overlap crossing",
+      L.polygons_overlap([SQ(0, 0, 0.6)], [SQ(0.4, 0.4, 0.6)]))
+check("overlap touching edge",
+      not L.polygons_overlap([SQ(0, 0, 0.5)], [SQ(0.5, 0, 0.5)]))
+check("overlap touching corner",
+      not L.polygons_overlap([SQ(0, 0, 0.5)], [SQ(0.5, 0.5, 0.5)]))
+check("overlap containment",
+      L.polygons_overlap([SQ(0, 0, 0.9)], [SQ(0.1, 0.1, 0.2)]))
+# T-junction: one vertex exactly on the other's edge -> contact, not overlap.
+touch_tri = [(0.3, 1.2), (0.7, 1.2), (0.5, 1.0)]
+check("overlap T-junction contact",
+      not L.polygons_overlap([SQ(0, 0, 1.0)], [touch_tri]))
+cross_tri = [(0.3, 1.2), (0.7, 1.2), (0.5, 0.8)]
+check("overlap T-crossing",
+      L.polygons_overlap([SQ(0, 0, 1.0)], [cross_tri]))
+# Concave L-shape: a square in the notch is disjoint, one in the body hits.
+lshape = [(0, 0), (1, 0), (1, 0.5), (0.5, 0.5), (0.5, 1), (0, 1)]
+check("overlap concave notch",
+      not L.polygons_overlap([lshape], [SQ(0.6, 0.6, 0.3)]))
+check("overlap concave body",
+      L.polygons_overlap([lshape], [SQ(0.4, 0.4, 0.3)]))
+# Collinear slide: B shares A's bottom edge line and slides into it -
+# positive-area overlap with no proper crossing and no strict vertex.
+slide_b = [(0.5, 0), (1.5, 0), (1.5, 1), (0.5, 1)]
+check("overlap collinear slide",
+      L.polygons_overlap([SQ(0, 0, 1.0)], [slide_b]))
+# Same geometry but B only touches A's bottom edge line from outside: no.
+touch_b = [(0.5, 0), (1.5, 0), (1.5, -1), (0.5, -1)]
+check("overlap collinear touch",
+      not L.polygons_overlap([SQ(0, 0, 1.0)], [touch_b]))
+# Multi-polygon lists: any pair hitting is enough.
+check("overlap multi disjoint",
+      not L.polygons_overlap([SQ(0, 0, 0.2)], [SQ(0.9, 0.9, 0.2)]))
+check("overlap multi one hit",
+      L.polygons_overlap([SQ(0, 0, 0.2), SQ(0.9, 0.9, 0.2)],
+                         [SQ(0.85, 0.85, 0.3)]))
+
+# ------------------------------------------------- tile_islands_overlap (fast)
+def GRID(x, y, s, k):
+    """Square at (x,y) size s split into k*k quads -> list of face polys."""
+    faces = []
+    d = s / k
+    for i in range(k):
+        for j in range(k):
+            x0, y0 = x + i * d, y + j * d
+            faces.append([(x0, y0), (x0 + d, y0),
+                          (x0 + d, y0 + d), (x0, y0 + d)])
+    return faces
+
+check("tile single island", not L.tile_islands_overlap([GRID(0, 0, 0.5, 3)]))
+check("tile empty", not L.tile_islands_overlap([]))
+check("tile disjoint multi-face",
+      not L.tile_islands_overlap([GRID(0, 0, 0.4, 3), GRID(0.6, 0.6, 0.4, 3)]))
+check("tile touching edge",
+      not L.tile_islands_overlap([GRID(0, 0, 0.5, 3), GRID(0.5, 0, 0.5, 3)]))
+check("tile touching corner",
+      not L.tile_islands_overlap([GRID(0, 0, 0.5, 3), GRID(0.5, 0.5, 0.5, 3)]))
+check("tile crossing",
+      L.tile_islands_overlap([GRID(0, 0, 0.6, 3), GRID(0.4, 0.4, 0.6, 3)]))
+check("tile containment",
+      L.tile_islands_overlap([GRID(0, 0, 0.9, 4), [SQ(0.1, 0.1, 0.2)]]))
+# One overlapping pair buried among many disjoint islands.
+many = [GRID(i * 0.2, j * 0.2, 0.15, 2) for i in range(5) for j in range(5)]
+many.append(GRID(0.9, 0.9, 0.2, 2))
+check("tile one hit among many",
+      L.tile_islands_overlap(many + [[SQ(0.85, 0.85, 0.3)]]))
+
+# Performance sanity: 256 islands x 16 faces, all disjoint -> must be fast.
+perf = [GRID(i * 0.0625, j * 0.0625, 0.05, 4)
+        for i in range(16) for j in range(16)]
 t0 = time.perf_counter()
-for _ in range(5):
-    solve(make_items(7, 1000), 10, 10, 0.005, True)
-dt = (time.perf_counter() - t0) / 5
-check("perf: 1000 items 10x10 < 2s", dt < 2.0, f"{dt*1000:.0f} ms")
-
+res = L.tile_islands_overlap(perf)
+dt = time.perf_counter() - t0
+print(f"  (info) tile perf: {len(perf)} islands, "
+      f"{sum(len(i) for i in perf)} faces -> {res} in {dt:.3f}s")
+check("tile perf disjoint result", not res)
+check("tile perf fast (<2s)", dt < 2.0)
+# Same tile but the last island shifted into its neighbour: overlap found.
+perf_hit = [list(i) for i in perf]
+perf_hit[-1] = [ [(px - 0.03, py) for (px, py) in f] for f in perf[-1] ]
 t0 = time.perf_counter()
-solve(make_shape_items(77, 100), 10, 10, 0.005, True)
-dt_sh = time.perf_counter() - t0
-check("perf: 100 shaped items 10x10 < 60s", dt_sh < 60.0,
-      f"{dt_sh:.2f} s")
+res = L.tile_islands_overlap(perf_hit)
+dt = time.perf_counter() - t0
+print(f"  (info) tile perf hit: {res} in {dt:.3f}s")
+check("tile perf hit found", res)
+
+# ------------------------------------------------------- solve with refusal
+# Oracle simulating the native packer: refuses (cancel / overlap) while the
+# scale is above a threshold, places cleanly below it.
+def make_refusal_oracle(items, n_tiles, thresh):
+    def oracle(assign, S):
+        if S > thresh:
+            raise L.PackRefusedError("simulated refusal")
+        ext = [None] * n_tiles
+        for t in sorted(set(assign.values())):
+            load = sum(it.area for it in items if assign[it.index] == t)
+            v = min(load * S * 2.0, hi - 1e-4)
+            e = ext[t] if ext[t] is not None else [0.0, 0.0, 0.0, 0.0]
+            e[2] = max(e[2], v)
+            e[3] = max(e[3], v)
+            ext[t] = e
+        return ext
+    return oracle
+
+items_r = [I(0, 0.5, 0.5), I(1, 0.4, 0.4)]
+res_r = L.solve(items_r, 2, 1, m, make_refusal_oracle(items_r, 2, 1.5))
+check("solve refusal converges", res_r[3], f"S={res_r[0]} rounds={res_r[2]}")
+check("solve refusal stays below threshold",
+      res_r[0] <= 1.5 + 1e-12, f"S={res_r[0]:.6f}")
+
+# Persistent refusal: deterministic shrink must exhaust max_rounds and raise
+# the plain non-convergence error (not leak PackRefusedError).
+def oracle_always_refuse(assign, S):
+    raise L.PackRefusedError("always")
+try:
+    L.solve([I(0, 0.5, 0.5)], 1, 1, m, oracle_always_refuse, max_rounds=6)
+    check("solve always-refusal raises", False)
+except RuntimeError as e:
+    check("solve always-refusal raises", "did not converge" in str(e),
+          str(e))
 
 print()
-if FAILS:
-    print(f"RESULT: {len(FAILS)} FAILED: {FAILS}")
-    sys.exit(1)
-print("RESULT: ALL PASS")
+print(f"RESULT: {PASS} passed, {FAIL} failed")
+sys.exit(1 if FAIL else 0)

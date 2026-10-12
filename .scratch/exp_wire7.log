@@ -1,0 +1,15 @@
+00:00.211  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Traceback (most recent call last):
+  File "/mnt/fusion/ai-projects/blender-uv-packer/.scratch/exp_wire7.py", line 57, in <module>
+    bmesh.ops.delete(bm, geom=loose_v + loose_e, context='VERTS_EDGES')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: context: 'VERTS_EDGES' not found in (['VERTS', 'EDGES', 'FACES_ONLY', 'EDGES_FACES', 'FACES', 'FACES_KEEP_BOUNDARY', 'TAGGED_ONLY'])
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+W7 mesh copy, no modifier: -> {'FINISHED'}
+W7 Wire modifier SUBSURF show_viewport=True
+W7 Wire with SUBSURF off: -> {'CANCELLED'}
+W7 loose verts=0 loose edges=0
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

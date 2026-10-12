@@ -1,0 +1,20 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+PROBE single-0.8: {'FINISHED'} extent=(-0.0, -0.0, 0.8, 0.8)
+PROBE single-1.5: {'FINISHED'} extent=(0.0, 0.0, 1.5, 1.5)
+PROBE t8-shape-m0: {'FINISHED'} extent=(0.0, 0.0, 0.797, 0.797)
+PROBE t8-shape-m0008: {'FINISHED'} extent=(0.001, 0.001, 0.798, 0.798)
+PROBE t8-shape-rep0: {'FINISHED'} extent=(0.001, 0.001, 0.798, 0.798)
+PROBE t8-shape-rep1: {'FINISHED'} extent=(0.001, 0.001, 0.798, 0.798)
+PROBE t8-shape-rep2: {'FINISHED'} extent=(0.001, 0.001, 0.798, 0.798)
+PROBE t8-shape-rep3: {'FINISHED'} extent=(0.001, 0.001, 0.798, 0.798)
+PROBE t8-shape-rep4: {'FINISHED'} extent=(0.001, 0.001, 0.798, 0.798)
+PROBE t8-shape-rep5: {'FINISHED'} extent=(0.001, 0.001, 0.798, 0.798)
+PROBE t8-shape-rep6: {'FINISHED'} extent=(0.001, 0.001, 0.798, 0.798)
+PROBE t8-shape-rep7: {'FINISHED'} extent=(0.001, 0.001, 0.798, 0.798)
+PROBE fit-0.5+0.4: {'FINISHED'} extent=(0.0, 0.0, 0.5, 0.5)
+PROBE SUMMARY: {'single-0.8': {'FINISHED'}, 'single-1.5': {'FINISHED'}, 't8-shape-m0': {'FINISHED'}, 't8-shape-m0008': {'FINISHED'}, 't8-shape-rep0': {'FINISHED'}, 't8-shape-rep1': {'FINISHED'}, 't8-shape-rep2': {'FINISHED'}, 't8-shape-rep3': {'FINISHED'}, 't8-shape-rep4': {'FINISHED'}, 't8-shape-rep5': {'FINISHED'}, 't8-shape-rep6': {'FINISHED'}, 't8-shape-rep7': {'FINISHED'}, 'fit-0.5+0.4': {'FINISHED'}}
+PROBE DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

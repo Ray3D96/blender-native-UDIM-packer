@@ -1,0 +1,18 @@
+00:00.218  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+Native UDIM Packer v0.2.0 registered
+D2 rotate=True S*=1.0050092198529732 tiles=[(0, 0), (1, 0)]
+D2 OVERLAP pairs=1619 pixels=185990 area~0.709496
+   worst (0, 0) 14740px: [ContainerMain isl#3 faces=2182 bbox=(0.000,0.000,0.664,0.331)] vs [Base isl#13 faces=317 bbox=(0.232,0.000,0.528,0.221)]
+   worst (0, 0) 10318px: [ContainerMain isl#4 faces=1624 bbox=(0.000,0.331,0.657,0.597)] vs [Base isl#7 faces=556 bbox=(0.232,0.443,0.499,0.670)]
+   worst (0, 0) 10013px: [ContainerMain isl#3 faces=2182 bbox=(0.000,0.000,0.664,0.331)] vs [Base isl#12 faces=134 bbox=(0.000,0.000,0.232,0.309)]
+   worst (0, 0) 7814px: [ContainerMain isl#4 faces=1624 bbox=(0.000,0.331,0.657,0.597)] vs [Base isl#8 faces=317 bbox=(0.232,0.221,0.528,0.443)]
+   worst (0, 0) 6839px: [ContainerMain isl#3 faces=2182 bbox=(0.000,0.000,0.664,0.331)] vs [Base isl#8 faces=317 bbox=(0.232,0.221,0.528,0.443)]
+   worst (0, 0) 6599px: [ContainerMain isl#4 faces=1624 bbox=(0.000,0.331,0.657,0.597)] vs [Base isl#11 faces=144 bbox=(0.000,0.309,0.161,0.543)]
+   worst (0, 0) 5699px: [ContainerMain isl#4 faces=1624 bbox=(0.000,0.331,0.657,0.597)] vs [Base isl#9 faces=374 bbox=(0.499,0.443,0.764,0.601)]
+   worst (0, 0) 5210px: [Lid isl#2 faces=614 bbox=(-0.000,0.000,0.222,0.230)] vs [ContainerMain isl#3 faces=2182 bbox=(0.000,0.000,0.664,0.331)]
+D2DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

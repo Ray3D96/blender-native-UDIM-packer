@@ -10,7 +10,7 @@ the selected objects into a user-defined UDIM tile grid, 100% natively
 | Path | What it is |
 |------|------------|
 | `native_udim_packer/` | The addon source (the installable package). See its [README](native_udim_packer/README.md) for features, usage and how-it-works. |
-| `.scratch/e2e_test.py` | End-to-end test suite: installs the release zip into a real `blender --background` process and runs 39 checks (island-detection ground truth, tile containment, no-overlap audits, UDIM numbering spec, multi-object/multi-edit round-trips, UI binding guard). |
+| `.scratch/e2e_test.py` | End-to-end test suite: installs the release zip into a real `blender --background` process and runs 45 checks (island-detection ground truth, tile containment, measured zero-overlap raster audit, UDIM numbering spec, sequential-fill ordering, multi-object/multi-edit round-trips, UI binding guard). |
 | `.scratch/verify_install.py` | Fresh-process install verification (auto-load, version, live settings group, monkey → 5 islands). |
 | `.scratch/install_user_blender.py` | Installs the current release zip into a target Blender portable. |
 | `dist/` | Release artifacts — **not tracked** (gitignored). One zip per release: `native_udim_packer-X.Y.Z.zip`. |
@@ -27,7 +27,7 @@ From this directory:
 ./blender-5.2.2-linux-x64/blender --background --python .scratch/e2e_test.py
 ```
 
-Expected: `SUMMARY: 39/39 passed`. The suite installs from
+Expected: `SUMMARY: 45/45 passed`. The suite installs from
 `dist/native_udim_packer-<version>.zip`, so build the zip first when releasing
 (see below).
 
@@ -39,7 +39,7 @@ Expected: `SUMMARY: 39/39 passed`. The suite installs from
    entry's hash against the source.
 3. Run the full e2e suite to green.
 4. Delete the previous release zip from `dist/` — one distinguishable zip per
-   release (current: **0.1.4**).
+   release (current: **0.2.0**).
 5. Install into target Blenders and verify with a fresh background process
    (`verify_install.py`).
 

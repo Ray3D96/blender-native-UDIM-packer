@@ -1,0 +1,17 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+INSTALL ZIP: /mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.2.0.zip
+reloading addon meta-data: native_udim_packer '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/__init__.py' (time-stamp change detected)
+Modules Installed () from '/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.2.0.zip' into '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons'
+Info: Modules Installed () from '/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.2.0.zip' into '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons'
+INSTALL: {'FINISHED'}
+module changed on disk: '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/__init__.py' reloading...
+Native UDIM Packer v0.2.0 registered
+ENABLED: True
+VERSION: (0, 2, 0)
+00:00.182  blend            | Writing user preferences: "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/config/userpref.blend" 
+Info: Preferences saved
+PREFS SAVED
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

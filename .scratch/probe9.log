@@ -1,0 +1,24 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+PROBE9 A-default face0 -> {'CANCELLED'}
+PROBE9 A-default face1 -> {'CANCELLED'}
+PROBE9 A-default face2 -> {'CANCELLED'}
+PROBE9 A-default face3 -> {'CANCELLED'}
+PROBE9 A-default face4 -> {'FINISHED'}
+PROBE9 A-default face5 -> {'FINISHED'}
+PROBE9 B-rotX90 face0 -> {'CANCELLED'}
+PROBE9 B-rotX90 face1 -> {'CANCELLED'}
+PROBE9 B-rotX90 face2 -> {'CANCELLED'}
+PROBE9 B-rotX90 face3 -> {'CANCELLED'}
+PROBE9 B-rotX90 face4 -> {'FINISHED'}
+PROBE9 B-rotX90 face5 -> {'FINISHED'}
+PROBE9 C-bmesh face0 -> {'CANCELLED'}
+PROBE9 C-bmesh face1 -> {'CANCELLED'}
+PROBE9 C-bmesh face2 -> {'CANCELLED'}
+PROBE9 C-bmesh face3 -> {'CANCELLED'}
+PROBE9 C-bmesh face4 -> {'FINISHED'}
+PROBE9 C-bmesh face5 -> {'FINISHED'}
+PROBE9 DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

@@ -1,0 +1,6 @@
+00:00.185  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+Native UDIM Packer v0.2.0 registered
+QA probe objects=35 cap=8
+  round1 S=1.005009 OK tiles=[0, 1] dt=339.88s

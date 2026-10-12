@@ -1,0 +1,16 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+pre-pack islands=3 faces=[32, 32, 436]
+  isl0: faces=32 bbox=(0.2395, 0.2395) area=0.0574
+  isl1: faces=32 bbox=(0.2395, 0.2395) area=0.0574
+  isl2: faces=436 bbox=(0.9997, 0.9497) area=0.9495
+total reference area=1.0642
+S_max=1.000280 cap_at_Smax=0.9994 eta0.92*cap=0.9195
+ffd@Smax eta=.92 -> [0, 1] per-tile=[1, 2, 0]
+pack 0.05s result={'objects': {'Suzanne': {'islands': 5, 'tiles_used': [(0, 0)], 'udims': [1001]}}, 'fallback_tiles': 0, 'fallback_reasons': [], 'shared_tiles': 0, 'global_scale': 1.0002800897426136, 'tiles_used_total': [(0, 0)]}
+  post isl0: faces=32 bbox=(0.6766,0.4807)-(0.9163,0.7203) udim=1001
+  post isl1: faces=32 bbox=(0.6766,0.7203)-(0.9163,0.9599) udim=1001
+  post isl2: faces=436 bbox=(0.0000,0.0000)-(1.0000,0.9018) udim=1001
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

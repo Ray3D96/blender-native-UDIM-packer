@@ -1,0 +1,15 @@
+Add-on not loaded: "native_udim_packer", cause: No module named 'native_udim_packer'
+INSTALL ZIP: /mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.2.0.zip
+addon_utils.disable: native_udim_packer not loaded
+Modules Installed (native_udim_packer) from '/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.2.0.zip' into '/mnt/fusion/Blender/blender-5.2.2-linux-x64/portable/scripts/addons'
+Info: Modules Installed (native_udim_packer) from '/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.2.0.zip' into '/mnt/fusion/Blender/blender-5.2.2-linux-x64/portable/scripts/addons'
+INSTALL: {'FINISHED'}
+Native UDIM Packer v0.2.0 registered
+ENABLED: True
+VERSION: (0, 2, 0)
+00:00.263  blend            | Writing user preferences: "/mnt/fusion/Blender/blender-5.2.2-linux-x64/portable/config/userpref.blend" 
+Info: Preferences saved
+PREFS SAVED
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

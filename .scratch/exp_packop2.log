@@ -1,0 +1,19 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+Blender 5.2.2 LTS
+E result: {'FINISHED'}
+E fits+margin: n=2 x[0.0016,0.4016] y[0.0016,0.8048]
+   face0: x[0.0016,0.4016] y[0.0016,0.4016] size 0.4000x0.4000
+   face1: x[0.0016,0.4016] y[0.4048,0.8048] size 0.4000x0.4000
+F result: {'FINISHED'}
+F far-single: n=1 x[0.0000,0.3000] y[0.0000,0.3000]
+   face0: x[0.0000,0.3000] y[0.0000,0.3000] size 0.3000x0.3000
+G result: {'FINISHED'}
+G far-pair: n=2 x[0.0000,0.4000] y[0.0000,0.8000]
+   face0: x[0.0000,0.4000] y[0.0000,0.4000] size 0.4000x0.4000
+   face1: x[0.0000,0.4000] y[0.4000,0.8000] size 0.4000x0.4000
+EXPPACK2 DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit
+Error: Not freed memory blocks: 32, total unfreed memory 1.020226 MB

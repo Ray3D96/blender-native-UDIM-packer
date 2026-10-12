@@ -1,0 +1,21 @@
+00:00.210  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+W9 edit-mode objects after load: ['Axel', 'BallBearings', 'Base', 'BladeAxel', 'BladeAxel.001', 'BladesA', 'BladesA.001', 'BladesB', 'BladesB.001', 'BladesC', 'BladesC.001', 'ContainerHandle', 'ContainerHandlePlastic', 'ContainerInnerBase', 'ContainerLegs', 'ContainerMain', 'DrainLid', 'Feet', 'Handle', 'InnerSpinBase', 'InnerSpinBase.001', 'Lid', 'LogoPlate', 'Mount', 'Plug', 'PlugEnd', 'PlugMetal', 'ReleaseButton', 'RubberPads', 'RubberSeals', 'Spinner', 'SpinStablizer', 'WireEnd', 'WireSocket']
+W9 context.object after load: Base mode=EDIT
+W9 Wire is_edit_mode=False mode=OBJECT
+W9 Wire hide_viewport=False hide_select=False visible=False instance_type=NONE
+W9 Wire data.users=1 collection(s)=['Collection']
+W9 commit edit -> {'FINISHED'}
+W9 Wire mode after commit: OBJECT edit_objs=[]
+W9 Wire original: mode_set(EDIT)->{'FINISHED'} ctx_mode=EDIT is_edit=True
+W9 Wire original: pack -> {'CANCELLED'}
+W9 copy shares data: True modifiers=['SUBSURF']
+W9 Wire ob.copy() (shared data): mode_set(EDIT)->{'FINISHED'} ctx_mode=EDIT is_edit=True
+W9 Wire ob.copy() (shared data): pack -> {'FINISHED'}
+W9 Wire original (retest): mode_set(EDIT)->{'FINISHED'} ctx_mode=EDIT is_edit=True
+W9 Wire original (retest): pack -> {'CANCELLED'}
+W9DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

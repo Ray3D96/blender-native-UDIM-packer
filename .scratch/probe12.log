@@ -1,0 +1,58 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+PROBE12 m-sync1-DISABLED-recA-f1: echo sync=True sticky=DISABLED
+PROBE12 m-sync1-DISABLED-recA-f1 (sync=1 sticky=DISABLED rec=A): -> {'FINISHED'} post={1: (0.0003, 0.0003, 0.3183, 0.3183)}
+PROBE12 m-sync1-DISABLED-recA-f1: nonselected_uv_changes=4
+PROBE12 m-sync1-DISABLED-recA-f5: echo sync=True sticky=DISABLED
+PROBE12 m-sync1-DISABLED-recA-f5 (sync=1 sticky=DISABLED rec=A): -> {'FINISHED'} post={5: (0.0003, 0.0003, 0.3183, 0.3183)}
+PROBE12 m-sync1-DISABLED-recA-f5: nonselected_uv_changes=4
+PROBE12 m-sync1-DISABLED-recB-f1: echo sync=True sticky=DISABLED
+PROBE12 m-sync1-DISABLED-recB-f1 (sync=1 sticky=DISABLED rec=B): -> {'FINISHED'} post={1: (0.0003, 0.0003, 0.3183, 0.3183)}
+PROBE12 m-sync1-DISABLED-recB-f1: nonselected_uv_changes=4
+PROBE12 m-sync1-DISABLED-recB-f5: echo sync=True sticky=DISABLED
+PROBE12 m-sync1-DISABLED-recB-f5 (sync=1 sticky=DISABLED rec=B): -> {'FINISHED'} post={5: (0.0003, 0.0003, 0.3183, 0.3183)}
+PROBE12 m-sync1-DISABLED-recB-f5: nonselected_uv_changes=4
+PROBE12 m-sync1-SHARED_LOCATION-recA-f1: echo sync=True sticky=SHARED_LOCATION
+PROBE12 m-sync1-SHARED_LOCATION-recA-f1 (sync=1 sticky=SHARED_LOCATION rec=A): -> {'FINISHED'} post={1: (0.0003, 0.0003, 0.3183, 0.3183)}
+PROBE12 m-sync1-SHARED_LOCATION-recA-f1: nonselected_uv_changes=4
+PROBE12 m-sync1-SHARED_LOCATION-recA-f5: echo sync=True sticky=SHARED_LOCATION
+PROBE12 m-sync1-SHARED_LOCATION-recA-f5 (sync=1 sticky=SHARED_LOCATION rec=A): -> {'FINISHED'} post={5: (0.0003, 0.0003, 0.3183, 0.3183)}
+PROBE12 m-sync1-SHARED_LOCATION-recA-f5: nonselected_uv_changes=4
+PROBE12 m-sync1-SHARED_LOCATION-recB-f1: echo sync=True sticky=SHARED_LOCATION
+PROBE12 m-sync1-SHARED_LOCATION-recB-f1 (sync=1 sticky=SHARED_LOCATION rec=B): -> {'FINISHED'} post={1: (0.0003, 0.0003, 0.3183, 0.3183)}
+PROBE12 m-sync1-SHARED_LOCATION-recB-f1: nonselected_uv_changes=4
+PROBE12 m-sync1-SHARED_LOCATION-recB-f5: echo sync=True sticky=SHARED_LOCATION
+PROBE12 m-sync1-SHARED_LOCATION-recB-f5 (sync=1 sticky=SHARED_LOCATION rec=B): -> {'FINISHED'} post={5: (0.0003, 0.0003, 0.3183, 0.3183)}
+PROBE12 m-sync1-SHARED_LOCATION-recB-f5: nonselected_uv_changes=4
+PROBE12 m-sync1-SHARED_VERTEX-recA-f1: echo sync=True sticky=SHARED_VERTEX
+PROBE12 m-sync1-SHARED_VERTEX-recA-f1 (sync=1 sticky=SHARED_VERTEX rec=A): -> {'FINISHED'} post={1: (0.0003, 0.0003, 0.3183, 0.3183)}
+PROBE12 m-sync1-SHARED_VERTEX-recA-f1: nonselected_uv_changes=4
+PROBE12 m-sync1-SHARED_VERTEX-recA-f5: echo sync=True sticky=SHARED_VERTEX
+PROBE12 m-sync1-SHARED_VERTEX-recA-f5 (sync=1 sticky=SHARED_VERTEX rec=A): -> {'FINISHED'} post={5: (0.0003, 0.0003, 0.3183, 0.3183)}
+PROBE12 m-sync1-SHARED_VERTEX-recA-f5: nonselected_uv_changes=4
+PROBE12 m-sync1-SHARED_VERTEX-recB-f1: echo sync=True sticky=SHARED_VERTEX
+PROBE12 m-sync1-SHARED_VERTEX-recB-f1 (sync=1 sticky=SHARED_VERTEX rec=B): -> {'FINISHED'} post={1: (0.0003, 0.0003, 0.3183, 0.3183)}
+PROBE12 m-sync1-SHARED_VERTEX-recB-f1: nonselected_uv_changes=4
+PROBE12 m-sync1-SHARED_VERTEX-recB-f5: echo sync=True sticky=SHARED_VERTEX
+PROBE12 m-sync1-SHARED_VERTEX-recB-f5 (sync=1 sticky=SHARED_VERTEX rec=B): -> {'FINISHED'} post={5: (0.0003, 0.0003, 0.3183, 0.3183)}
+PROBE12 m-sync1-SHARED_VERTEX-recB-f5: nonselected_uv_changes=4
+PROBE12 m-sync0-NONE-recA-f1: echo sync=False sticky=SHARED_VERTEX
+PROBE12 m-sync0-NONE-recA-f1 (sync=0 sticky=NONE rec=A): -> {'CANCELLED'} post={1: (0.0057, 0.3352, 0.3238, 0.6533)}
+PROBE12 m-sync0-NONE-recA-f1: nonselected_uv_changes=0
+PROBE12 m-sync0-NONE-recA-f5: echo sync=False sticky=SHARED_VERTEX
+PROBE12 m-sync0-NONE-recA-f5 (sync=0 sticky=NONE rec=A): -> {'CANCELLED'} post={5: (0.3352, 0.6648, 0.6533, 0.9828)}
+PROBE12 m-sync0-NONE-recA-f5: nonselected_uv_changes=0
+PROBE12 m-sync0-NONE-recB-f1: echo sync=False sticky=SHARED_VERTEX
+PROBE12 m-sync0-NONE-recB-f1 (sync=0 sticky=NONE rec=B): -> {'CANCELLED'} post={1: (0.0057, 0.3352, 0.3238, 0.6533)}
+PROBE12 m-sync0-NONE-recB-f1: nonselected_uv_changes=0
+PROBE12 m-sync0-NONE-recB-f5: echo sync=False sticky=SHARED_VERTEX
+PROBE12 m-sync0-NONE-recB-f5 (sync=0 sticky=NONE rec=B): -> {'CANCELLED'} post={5: (0.3352, 0.6648, 0.6533, 0.9828)}
+PROBE12 m-sync0-NONE-recB-f5: nonselected_uv_changes=0
+Traceback (most recent call last):
+  File "/mnt/fusion/ai-projects/blender-uv-packer/.scratch/probe12.py", line 143, in <module>
+    for l, c in zip(tuple(bm.faces[1].loops),
+                          ~~~~~~~~^^^
+IndexError: BMElemSeq[index]: outdated internal index table, run ensure_lookup_table() first
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

@@ -1,0 +1,14 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+PROBE5 C1-only-1: sel=[1] move_others=None -> {'CANCELLED'}
+PROBE5 C2-only-5: sel=[5] move_others=None -> {'FINISHED'}
+PROBE5 C3-only-8: sel=[8] move_others=None -> {'CANCELLED'}
+PROBE5 C4-only-9: sel=[9] move_others=None -> {'CANCELLED'}
+PROBE5 C5-{1,9}: sel=[1, 9] move_others=None -> {'CANCELLED'}
+PROBE5 C6-{5,8}: sel=[5, 8] move_others=None -> {'FINISHED'}
+PROBE5 C7-only-1-others-far: sel=[1] move_others=far -> {'CANCELLED'}
+PROBE5 C8-only-1-others-corner: sel=[1] move_others=corner -> {'CANCELLED'}
+PROBE5 DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

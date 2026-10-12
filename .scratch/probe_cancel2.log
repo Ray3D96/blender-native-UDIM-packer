@@ -1,0 +1,11 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+PROBE2 unsel-inside: {'FINISHED'} all-extent=(0.001, 0.001, 0.85, 1.1984)
+PROBE2 unsel-outside: {'FINISHED'} all-extent=(0.001, 0.001, 1.35, 1.35)
+PROBE2 unsel-outside-rep0: {'FINISHED'} all-extent=(0.001, 0.001, 1.35, 1.35)
+PROBE2 unsel-outside-rep1: {'FINISHED'} all-extent=(0.001, 0.001, 1.35, 1.35)
+PROBE2 unsel-outside-rep2: {'FINISHED'} all-extent=(0.001, 0.001, 1.35, 1.35)
+PROBE2 DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

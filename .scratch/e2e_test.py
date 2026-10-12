@@ -4,6 +4,7 @@
 Installs the addon from the dist zip, enables it, then runs the operator on
 several generated meshes and audits the resulting UV layout.
 """
+import math
 import sys
 import traceback
 
@@ -20,7 +21,7 @@ def check(name, cond, detail=""):
 
 
 # ---------------------------------------------------------------- install --
-ZPATH = "/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.1.6.zip"
+ZPATH = "/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.2.0.zip"
 r = bpy.ops.preferences.addon_install(filepath=ZPATH)
 check("install from zip", r == {'FINISHED'}, str(r))
 bpy.ops.preferences.addon_enable(module="native_udim_packer")
@@ -48,9 +49,9 @@ _A.register()
 
 has_op = hasattr(bpy.ops.native_udim, "pack_to_grid")
 check("operator registered", has_op)
-check("release version is 0.1.6", tuple(_A.bl_info["version"]) == (0, 1, 6),
+check("release version is 0.2.0", tuple(_A.bl_info["version"]) == (0, 2, 0),
       str(tuple(_A.bl_info["version"])))
-check("VERSION string for panel stamp", _A.VERSION == "0.1.6", _A.VERSION)
+check("VERSION string for panel stamp", _A.VERSION == "0.2.0", _A.VERSION)
 
 # Settings must be a persistent PropertyGroup on the window manager - the
 # only pattern whose widgets are interactive in Blender 5.x (widgets bound
@@ -110,7 +111,8 @@ def uv_stats(ob):
     islands = packer.detect_islands(bm, uvl)
     out = []
     for i in islands:
-        minx, miny, maxx, maxy = packer.island_bounds(bm, uvl, i.face_indices)
+        minx, miny, maxx, maxy = i.min_uv[0], i.min_uv[1], i.max_uv[0], \
+            i.max_uv[1]
         cu, cv = (minx + maxx) / 2, (miny + maxy) / 2
         out.append({
             "uv_area": i.uv_area,
@@ -137,7 +139,13 @@ def run_pack(ob, gx, gy, normalize, rotate, margin=0.01):
     bpy.ops.object.select_all(action='DESELECT')
     ob.select_set(True)
     bpy.context.view_layer.objects.active = ob
-    return bpy.ops.native_udim.pack_to_grid()
+    try:
+        return bpy.ops.native_udim.pack_to_grid()
+    except RuntimeError as exc:
+        # An operator that reports ERROR and returns CANCELLED raises here;
+        # convert it so one failing test does not abort the whole suite.
+        print(f"    run_pack raised: {exc}")
+        return {'CANCELLED'}
 
 
 def audit(ob, gx, gy):
@@ -545,9 +553,19 @@ check("T10 island count preserved after pack (no cutting/shattering)",
       f"faces/post={[len(p) for p in post_parts]}")
 check("T10 all islands inside their tiles (3x1)", ok,
       f"islands={res['islands']}")
+# Sequential fill (Part III): used tiles form a row-major prefix starting
+# at 1001 - content that fits one tile stays in 1001 instead of being
+# spread out.
+from native_udim_packer import layout as _L
+
+
+def udim_prefix(gx, gy, n_used):
+    return [_P.udim_number(*p) for p in _L.tile_order(gx, gy)[:n_used]]
+
+
 udims_x = sorted({p["udim"] for p in res["per_island"] if p["udim"]})
-check("T10 X=3 packs into exactly UDIM 1001/1002/1003",
-      set(udims_x) == {1001, 1002, 1003}, f"udims={udims_x}")
+check("T10 X=3 fills UDIMs sequentially from 1001",
+      udims_x == udim_prefix(3, 1, len(udims_x)), f"udims={udims_x}")
 
 clean_scene()
 bpy.ops.mesh.primitive_monkey_add(size=1.0)
@@ -556,8 +574,8 @@ r = run_pack(mon, 1, 3, normalize=False, rotate=True)
 check("T10 operator FINISHED (1x3)", r == {'FINISHED'}, str(r))
 ok, res = audit(mon, 1, 3)
 udims_y = sorted({p["udim"] for p in res["per_island"] if p["udim"]})
-check("T10 Y=3 packs into exactly UDIM 1001/1011/1021",
-      ok and set(udims_y) == {1001, 1011, 1021}, f"udims={udims_y}")
+check("T10 Y=3 fills UDIMs sequentially from 1001",
+      ok and udims_y == udim_prefix(1, 3, len(udims_y)), f"udims={udims_y}")
 
 # --- Test 12: pack must NOT break pre-existing scale averaging -------------
 # v2 applies exactly one uniform factor to every island (normalize off), so
@@ -608,26 +626,117 @@ check("T13 normalize equalizes density ACROSS objects",
       r13 == {'FINISHED'} and spread_xo < 1.001,
       f"cross-object spread={spread_xo:.6f} (a:{len(da)} b:{len(db)})")
 
-# --- Test 14: used tiles are filled densely --------------------------------
+# --- Test 14: tiles are filled sequentially (earliest first) ---------------
+# v4 engine: 1001 must be as full as it can get before 1002 opens.  The
+# guarantees are: used tiles form a row-major prefix, earlier tiles are at
+# least as full as later ones (within one island's worth of area - the FFD
+# bound), and the content actually grew to use the grid (S* >= 1 for this
+# scene, whose smart-projected UVs start inside a single unit square).
 clean_scene()
 ob = make_test_object("t14")
 r14 = P.pack_objects([ob], 2, 2, False, True, 0.01)
 ok, res = audit(ob, 2, 2)
 # per-tile fill from island bounding boxes (interior = (1-2m)^2)
 tile_area = {}
+island_fracs = []
 for p in res["per_island"]:
-    if p["tile"] is None:
-        continue
     w = p["bounds"][2] - p["bounds"][0]
     h = p["bounds"][3] - p["bounds"][1]
+    island_fracs.append(w * h / (1 - 2 * 0.01) ** 2)
+    if p["tile"] is None:
+        continue
     tile_area[p["tile"]] = tile_area.get(p["tile"], 0.0) + w * h
 interior = (1 - 2 * 0.01) ** 2
 fills = {t: v / interior for t, v in tile_area.items()}
-lo, hi = min(fills.values()), max(fills.values())
-check("T14 used tiles filled densely and balanced",
-      "error" not in r14 and ok and len(fills) >= 2
-      and lo >= 0.40 and hi / lo <= 1.5,
-      f"fills={ {t: round(v, 3) for t, v in fills.items()} }")
+pos = {t: t[0] + t[1] * 2 for t in fills}          # row-major position
+used_sorted = sorted(fills, key=pos.get)
+positions = [pos[t] for t in used_sorted]
+prefix_ok = positions == list(range(len(positions)))
+seq_ok = (len(used_sorted) >= 1 and fills[used_sorted[0]]
+          >= fills[used_sorted[-1]] - max(island_fracs) - 1e-6)
+check("T14 tiles filled sequentially (prefix, earlier >= later)",
+      "error" not in r14 and ok and len(fills) >= 2 and prefix_ok and seq_ok,
+      f"fills={ {t: round(v, 3) for t, v in fills.items()} } "
+      f"S*={r14.get('global_scale', '?')}")
+check("T14 content grew to use the grid (S* >= 1)",
+      "error" not in r14 and r14.get("global_scale", 0.0) >= 1.0 - 1e-9,
+      f"S*={r14.get('global_scale', '?')}")
+
+# --- Test 15: measured zero overlap (raster audit) -------------------------
+# The strongest no-overlap statement: paint every island's UV triangles onto
+# a 512x512 grid per tile; any pixel claimed by two different islands is a
+# conflict.  This measures what the rendered texture actually sees - the
+# polygon triangle test in audit() misses sub-pixel slivers and its 0.1%
+# shrink can hide boundary contact.
+RES = 512
+
+
+def raster_conflicts(ob, gx, gy):
+    from native_udim_packer import packer
+    import mathutils.geometry as geom
+    need_enter = bpy.context.mode != 'EDIT_MESH'
+    if need_enter:
+        bpy.ops.object.select_all(action='DESELECT')
+        ob.select_set(True)
+        bpy.context.view_layer.objects.active = ob
+        bpy.ops.object.mode_set(mode='EDIT')
+    bm2 = bmesh.from_edit_mesh(ob.data)
+    uvl2 = bm2.loops.layers.uv.active
+    isl2 = packer.detect_islands(bm2, uvl2)
+    tris_by_tile = {}
+    for idx, i in enumerate(isl2):
+        tu = int(round((i.min_uv[0] + i.max_uv[0]) / 2))
+        tv = int(round((i.min_uv[1] + i.max_uv[1]) / 2))
+        for f in tuple(bm2.faces):
+            if f.index in i.face_indices:
+                pts = [(l[uvl2].uv.x - tu, l[uvl2].uv.y - tv)
+                       for l in tuple(f.loops)]
+                for t in geom.tessellate_polygon([pts]):
+                    tris_by_tile.setdefault((tu, tv), []).append(
+                        (pts[t[0]], pts[t[1]], pts[t[2]], idx))
+    bm2.free()
+    if need_enter:
+        bpy.ops.object.mode_set(mode='OBJECT')
+    conflicts = 0
+    worst = None
+    for (tu, tv), tris in tris_by_tile.items():
+        grid = [-1] * (RES * RES)
+        for (p0, p1, p2, idx) in tris:
+            x0, y0 = p0
+            x1, y1 = p1
+            x2, y2 = p2
+
+            def edge(ax, ay, bx, by, px, py):
+                return (bx - ax) * (py - ay) - (by - ay) * (px - ax)
+            minx = max(int((min(x0, x1, x2)) * RES), 0)
+            maxx = min(int(math.ceil(max(x0, x1, x2) * RES)), RES - 1)
+            miny = max(int((min(y0, y1, y2)) * RES), 0)
+            maxy = min(int(math.ceil(max(y0, y1, y2) * RES)), RES - 1)
+            for py in range(miny, maxy + 1):
+                uy = (py + 0.5) / RES
+                row = py * RES
+                for px in range(minx, maxx + 1):
+                    ux = (px + 0.5) / RES
+                    d0 = edge(x1, y1, x2, y2, ux, uy)
+                    d1 = edge(x2, y2, x0, y0, ux, uy)
+                    d2 = edge(x0, y0, x1, y1, ux, uy)
+                    if (d0 < 0 or d1 < 0 or d2 < 0) and \
+                            (d0 > 0 or d1 > 0 or d2 > 0):
+                        continue
+                    posn = row + px
+                    prev = grid[posn]
+                    if prev != -1 and prev != idx:
+                        conflicts += 1
+                        if worst is None:
+                            worst = ((tu, tv), prev, idx)
+                    else:
+                        grid[posn] = idx
+    return conflicts, worst
+
+
+conf15, worst15 = raster_conflicts(ob, 2, 2)
+check("T15 zero overlap (512^2 raster audit, all islands)",
+      conf15 == 0, f"conflict_pixels={conf15} worst={worst15}")
 
 # --- Test 11: panel draw() headless crash guard ----------------------------
 # Blender 5.x raises AttributeError when draw() assigns attributes to the

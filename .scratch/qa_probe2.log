@@ -1,0 +1,68 @@
+00:00.183  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+Native UDIM Packer v0.2.0 registered
+objects=35
+S=1.0050092198529732 islands=268
+eta=0.92 used tiles=[0, 1] per-tile=[15, 253]
+focus tile=0 objects=6 islands=15
+phase expose         0.00s
+phase enter-edit     0.07s
+phase write+sel      0.02s
+phase pack           0.75s  result={'FINISHED'}
+phase measure        0.01s
+  t1 obj WireSocket               mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj WireEnd                  mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj Wire                     mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj SpinStablizer            mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj Spinner                  mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj RubberSeals              mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj RubberPads               mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj ReleaseButton            mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj PlugMetal                mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj PlugEnd                  mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj Plug                     mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj Mount                    mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj LogoPlate                mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj Lid                      mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj InnerSpinBase.001        mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj InnerSpinBase            mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj Handle                   mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj Feet                     mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj DrainLid                 mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj ContainerMain            mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj ContainerLegs            mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj ContainerInnerBase       mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj ContainerHandlePlastic   mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj ContainerHandle          mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj BladesC.001              mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj BladesC                  mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj BladesB.001              mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj BladesB                  mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj BladesA.001              mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj BladesA                  mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj BladeAxel.001            mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj BladeAxel                mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj Base                     mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj BallBearings             mode=EDIT      sel=True hide_vl=False hide_get=False
+  t1 obj Axel                     mode=EDIT      sel=True hide_vl=False hide_get=False
+DIAG fset size=940 faces=[0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 19, 20, 21, 22, 23, 24, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 43, 44]
+DIAG PlugMetal t1 islands=11 face_counts=[28, 190, 192, 192, 18, 190, 15, 4, 15, 48, 48] union=940
+DIAG edit-bmesh found=940 missing_from_edit=[]
+phase pack-tile1  0.18s result={'FINISHED'}
+  CK after-pack: PlugMetal fset-match=940/940
+  CK read-PM polys=940 first20=[0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 19, 20, 21, 22]
+  CK read-PM handle first25 idx=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
+  CK after-read-PM: PlugMetal fset-match=940/940
+tile0: islands=15 faces/island top5=[2182, 1624, 614, 556, 512] total_faces=7420
+tile0: overlapchk 7.57s hits=0 slow_pairs(>0.2s)=11
+       1.15s  isl3(2182f) vs isl4(1624f)
+       0.44s  isl2(614f) vs isl3(2182f)
+       0.40s  isl3(2182f) vs isl7(556f)
+       0.36s  isl1(512f) vs isl3(2182f)
+       0.33s  isl2(614f) vs isl4(1624f)
+       0.30s  isl4(1624f) vs isl7(556f)
+       0.26s  isl1(512f) vs isl4(1624f)
+       0.26s  isl3(2182f) vs isl9(374f)
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+DEBUG missing face 0 in PlugMetal: n_faces_in_fp=14 island_faces=[0, 2, 4, 13, 15, 24, 51, 76]... n_isl_faces=28

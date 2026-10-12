@@ -1,0 +1,45 @@
+00:00.229  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+Native UDIM Packer v0.1.6 registered
+DIAG rotate_90=False targets=['WireSocket', 'WireEnd', 'Wire', 'SpinStablizer', 'Spinner', 'RubberSeals', 'RubberPads', 'ReleaseButton', 'PlugMetal', 'PlugEnd', 'Plug', 'Mount', 'LogoPlate', 'Lid', 'InnerSpinBase.001', 'InnerSpinBase', 'Handle', 'Feet', 'DrainLid', 'ContainerMain', 'ContainerLegs', 'ContainerInnerBase', 'ContainerHandlePlastic', 'ContainerHandle', 'BladesC.001', 'BladesC', 'BladesB.001', 'BladesB', 'BladesA.001', 'BladesA', 'BladeAxel.001', 'BladeAxel', 'Base', 'BallBearings', 'Axel']
+PACK TIME 29.05s  S*=1.0050092198529732
+nonconvex_faces=211
+tiles={(0, 0): (102, 0.4235), (1, 0): (78, 0.4606), (2, 0): (88, 0.4494)}
+OVERLAP raster pairs=40 total_px=3742 area~0.014275 (1.070% of used area)
+  worst: Feet[2] x ContainerHandle[0] tile=(0, 0) area~0.002235
+  worst: ContainerMain[0] x BladeAxel[2] tile=(1, 0) area~0.002182
+  worst: Plug[0] x ContainerHandle[0] tile=(0, 0) area~0.001869
+  worst: Mount[4] x ContainerMain[0] tile=(1, 0) area~0.001297
+  worst: ContainerMain[4] x BladeAxel[4] tile=(2, 0) area~0.000908
+  worst: Handle[5] x ContainerMain[0] tile=(1, 0) area~0.000870
+  worst: Spinner[21] x BladeAxel[2] tile=(1, 0) area~0.000847
+  worst: DrainLid[4] x ContainerHandle[0] tile=(0, 0) area~0.000801
+  worst: ContainerMain[0] x ContainerHandle[2] tile=(1, 0) area~0.000557
+  worst: Spinner[21] x ContainerMain[0] tile=(1, 0) area~0.000366
+  worst: ContainerMain[5] x Base[7] tile=(0, 0) area~0.000301
+  worst: Mount[8] x ContainerMain[0] tile=(1, 0) area~0.000267
+OUTLINE-FLAGS n=232 (dev>0.1%): dangerous(neg)=134 conservative(pos)=98
+  NEG Wire[0] faces=1312 true=0.028573 raw=9.2e-05 simpl=9.2e-05 dev_raw=-99.677% dev_simp=-99.677%
+  NEG Plug[0] faces=308 true=0.001968 raw=2.1e-05 simpl=2e-05 dev_raw=-98.953% dev_simp=-99.008%
+  NEG ContainerInnerBase[2] faces=80 true=0.002644 raw=0.000119 simpl=7.1e-05 dev_raw=-95.498% dev_simp=-97.296%
+  NEG ContainerLegs[3] faces=126 true=0.006485 raw=0.000368 simpl=0.000368 dev_raw=-94.323% dev_simp=-94.323%
+  NEG ContainerLegs[2] faces=126 true=0.005651 raw=0.000353 simpl=0.00035 dev_raw=-93.757% dev_simp=-93.804%
+  NEG RubberPads[1] faces=202 true=0.002929 raw=0.000194 simpl=0.000198 dev_raw=-93.365% dev_simp=-93.231%
+  NEG ContainerLegs[0] faces=126 true=0.005651 raw=0.000926 simpl=0.000433 dev_raw=-83.609% dev_simp=-92.33%
+  NEG RubberPads[0] faces=166 true=0.001506 raw=0.000236 simpl=0.000119 dev_raw=-84.335% dev_simp=-92.126%
+  NEG ContainerLegs[1] faces=126 true=0.006485 raw=0.00147 simpl=0.000959 dev_raw=-77.334% dev_simp=-85.215%
+  NEG Spinner[14] faces=96 true=0.001038 raw=0.000166 simpl=0.000166 dev_raw=-83.99% dev_simp=-83.99%
+  NEG InnerSpinBase.001[0] faces=280 true=0.000261 raw=6e-05 simpl=5.9e-05 dev_raw=-76.918% dev_simp=-77.319%
+  NEG InnerSpinBase[0] faces=280 true=0.000261 raw=6e-05 simpl=5.9e-05 dev_raw=-76.916% dev_simp=-77.318%
+  POS WireSocket[0] faces=92 true=0.000203 raw=0.000203 simpl=0.000204 dev_raw=0.0% dev_simp=0.252%
+  POS WireSocket[2] faces=44 true=0.000142 raw=0.000142 simpl=0.000142 dev_raw=0.0% dev_simp=0.13%
+  POS SpinStablizer[0] faces=260 true=0.001179 raw=0.001548 simpl=0.001543 dev_raw=31.251% dev_simp=30.835%
+  POS Spinner[0] faces=92 true=0.000803 raw=0.001262 simpl=0.001263 dev_raw=57.167% dev_simp=57.286%
+  POS Spinner[3] faces=481 true=0.005425 raw=0.00851 simpl=0.008515 dev_raw=56.861% dev_simp=56.96%
+  POS Spinner[4] faces=92 true=0.000803 raw=0.001237 simpl=0.001238 dev_raw=54.065% dev_simp=54.19%
+DIAG-SUMMARY rot=OFF pack_time=29.05s S*=1.0050092198529732 overlap_pairs=40 overlap_area~0.014275 outline_neg=134 outline_pos=98
+00:30.703  reports          | ERROR Cannot read file "/mnt/fusion/ai-projects/blender-uv-packer/rot": No such file or directory
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

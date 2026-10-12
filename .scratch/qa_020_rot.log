@@ -1,0 +1,19 @@
+00:00.218  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+Native UDIM Packer v0.2.0 registered
+QA rotate_90=True version=0.2.0 objects=35
+QA PACK TIME 10.86s  S*=1.0050092198529732
+QA tiles_used_total=[(0, 0), (1, 0)] shared_tiles=2
+QA islands=268 fills={(0, 0): 0.92, (1, 0): 0.7526}
+QA LAYOUT bounds=(-0.0000, -0.0000, 1.4989, 1.0000) crossing_islands=0
+QA OVERLAP pairs=1658 pixels=251390 area~0.958977 (95.898%)
+   worst ((0, 0), 3, 13): 16711px
+   worst ((0, 0), 4, 7): 12011px
+   worst ((0, 0), 3, 12): 10611px
+   worst ((0, 0), 4, 8): 8780px
+   worst ((0, 0), 3, 8): 7858px
+QA DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

@@ -1,0 +1,17 @@
+00:00.217  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+W10 layer Scene Collection: exclude=False hide_viewport=False collection.hide_viewport=False
+W10 layer Scene Collection/Collection: exclude=False hide_viewport=False collection.hide_viewport=False
+W10 Wire users_collection: ['Collection']
+W10 Wire hide_get=True hide_viewport=False visible_get=False
+W10 baseline (hidden): visible_get=False pack -> {'CANCELLED'}
+W10 ancestor chain: ['Collection']
+W10 cleared 0 blocking flag(s)
+W10 after un-exclude/un-hide chain: visible_get=False pack -> {'CANCELLED'}
+W10 restored flags
+W10 after restore (should fail again): visible_get=False pack -> {'CANCELLED'}
+W10DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

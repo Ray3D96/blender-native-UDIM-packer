@@ -55,8 +55,9 @@ class NATIVE_UDIM_PG_settings(PropertyGroup):
     rotate_90: BoolProperty(
         name="Allow 90° Rotation",
         description=(
-            "Let the layout solver rotate islands in 90-degree steps to "
-            "improve tile fill"
+            "Let the built-in packer rotate individual islands by 90 degrees "
+            "(cardinal directions) when that saves space; when off every "
+            "island keeps its current orientation"
         ),
         default=True,
     )
@@ -83,10 +84,12 @@ class NATIVE_UDIM_OT_pack_to_grid(Operator):
 
     Grid size and options are read from
     ``context.window_manager.native_udim`` (the panel's settings).  All
-    target objects share one texture set: their islands are balanced across
-    the whole grid together (LPT scheduling) and laid out with a single
-    global uniform scale, so they never overlap - even between different
-    objects - and relative sizes are preserved exactly.
+    target objects share one texture set: their islands are assigned to the
+    whole grid together (sequential first-fit-decreasing, filling tile 1001
+    before opening 1002) and laid out with a single global uniform scale;
+    each used tile is placed by the built-in ``uv.pack_islands`` operator,
+    so islands never overlap - even between different objects - and
+    relative sizes are preserved exactly.
     """
 
     bl_idname = "native_udim.pack_to_grid"

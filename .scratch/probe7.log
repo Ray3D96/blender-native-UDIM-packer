@@ -1,0 +1,23 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+PROBE7 map-face0-big: -> {'CANCELLED'}
+PROBE7 map-face1-big: -> {'CANCELLED'}
+PROBE7 map-face2-big: -> {'CANCELLED'}
+PROBE7 map-face3-big: -> {'CANCELLED'}
+PROBE7 map-face4-big: -> {'FINISHED'}
+PROBE7 map-face5-big: -> {'FINISHED'}
+PROBE7 map-face6-small: -> {'CANCELLED'}
+PROBE7 map-face7-small: -> {'CANCELLED'}
+PROBE7 map-face8-small: -> {'CANCELLED'}
+PROBE7 map-face9-small: -> {'CANCELLED'}
+PROBE7 map-face10-small: -> {'FINISHED'}
+PROBE7 map-face11-small: -> {'FINISHED'}
+PROBE7 face1-original-uv: -> {'CANCELLED'}
+PROBE7 face5-original-uv: -> {'FINISHED'}
+PROBE7 face1-m0: -> {'CANCELLED'}
+PROBE7 face1-norotate: -> {'CANCELLED'}
+PROBE7 face1-scale: -> {'CANCELLED'}
+PROBE7 DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

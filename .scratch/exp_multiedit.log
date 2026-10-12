@@ -1,0 +1,15 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+T1 enter multi-edit: {'FINISHED'} modes=('EDIT', 'EDIT') active=A
+T1 pack result: {'FINISHED'}
+T1 all_in_[0,1]=False cross_overlap_bbox=0.0000
+T1 A bboxes: [(0.349, 0.008, 0.674, 0.333), (0.69, 0.69, 1.016, 1.016), (0.008, 1.031, 0.333, 1.357), (0.349, 0.349, 0.674, 0.674), (0.008, 0.349, 0.333, 0.674), (0.69, 1.031, 1.016, 1.357)]
+T1 B bboxes: [(0.69, 0.008, 1.016, 0.333), (0.69, 0.349, 1.016, 0.674), (0.349, 1.031, 0.674, 1.357), (0.008, 0.008, 0.333, 0.333), (0.008, 0.69, 0.333, 1.016), (0.349, 0.69, 0.674, 1.016)]
+T2 pack result (C unselected): {'FINISHED'}
+T2 A/B bbox overlap with C square [0.3,0.7]^2: 0.1360
+T2 A bboxes: [(0.349, 0.008, 0.674, 0.333), (0.349, 0.349, 0.674, 0.674), (0.69, 0.008, 1.016, 0.333), (0.008, 0.008, 0.333, 0.333), (0.349, 1.031, 0.674, 1.357), (0.69, 0.349, 1.016, 0.674)]
+T3 face.index == polygon.index in multi-edit: True
+EXP-MULTIEDIT DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

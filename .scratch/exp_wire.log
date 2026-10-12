@@ -1,0 +1,17 @@
+00:00.211  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+WIRE saved-in-edit: Base -> committing to OBJECT
+WIRE mesh: cable.002 users: 1 polys: 1312
+WIRE uv_layers: ['UVMap'] active: UVMap
+WIRE shape_keys: False modifiers: ['SUBSURF']
+WIRE A pre-pack selected: (1312, 1312, 0, 1311)
+WIRE A all-faces pack: {'CANCELLED'}
+WIRE B pre-pack selected: (1, 1312, 0, 1311)
+WIRE B one-face pack: {'CANCELLED'}
+WIRE C one-face no-rot: {'CANCELLED'}
+WIRE D edit-face-indexes == 0..n-1: True min/max: 0 1311
+WIREDONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit
