@@ -44,17 +44,18 @@ class NATIVE_UDIM_PG_settings(PropertyGroup):
     normalize_scale: BoolProperty(
         name="Normalize Scale",
         description=(
-            "Equalize texel density before packing: every island is scaled so "
-            "that UV area per unit of 3D surface area is the same. When off, "
-            "the original relative island scales are preserved as much as "
-            "possible (islands that still do not fit a tile are shrunk)"
+            "Make every shell proportional to its 3D size: all islands end up "
+            "with the same texel density (UV area per unit of 3D surface "
+            "area), like Blender's Average Islands Scale. When off, the "
+            "original relative island scales are preserved exactly - one "
+            "uniform factor is applied to every island"
         ),
         default=False,
     )
     rotate_90: BoolProperty(
         name="Allow 90° Rotation",
         description=(
-            "Let the native packer rotate islands by 90 degrees (CARDINAL) to "
+            "Let the layout solver rotate islands in 90-degree steps to "
             "improve tile fill"
         ),
         default=True,
@@ -83,18 +84,16 @@ class NATIVE_UDIM_OT_pack_to_grid(Operator):
     Grid size and options are read from
     ``context.window_manager.native_udim`` (the panel's settings).  All
     target objects share one texture set: their islands are balanced across
-    the whole grid together and never overlap, even between different
-    objects.  Each tile is packed with Blender's native ``uv.pack_islands``
-    (CARDINAL 90-degree rotation when enabled), then shifted by whole-tile
-    offsets so every island ends up inside its assigned UDIM tile; tiles
-    that are shared by several objects use the built-in shelf layout.
+    the whole grid together (LPT scheduling) and laid out with a single
+    global uniform scale, so they never overlap - even between different
+    objects - and relative sizes are preserved exactly.
     """
 
     bl_idname = "native_udim.pack_to_grid"
     bl_label = "Pack to UDIM Grid"
     bl_description = (
         "Pack UV islands of the active (or all selected) objects into a "
-        "user-defined UDIM tile grid using Blender's native packer"
+        "user-defined UDIM tile grid with one global uniform scale"
     )
     bl_options = {'REGISTER', 'UNDO'}
 
@@ -131,7 +130,7 @@ class NATIVE_UDIM_OT_pack_to_grid(Operator):
         try:
             res = packer.pack_objects(
                 targets, grid_x, grid_y,
-                normalize=bool(s.normalize_scale),
+                normalize_scale=bool(s.normalize_scale),
                 rotate_90=bool(s.rotate_90),
                 margin=float(s.margin),
             )
@@ -154,20 +153,11 @@ class NATIVE_UDIM_OT_pack_to_grid(Operator):
             )
         for name, msg in res.get("errors", {}).items():
             lines.append(f"{name}: {msg}")
-        fallback = res["fallback_tiles"]
-        if fallback:
-            first_reason = next(iter(res["fallback_reasons"]), "")
-            suffix = f" ({first_reason})" if first_reason else \
-                     " (native packer unavailable)"
-            lines.append(
-                f"note: {fallback} tile(s) packed with the built-in manual "
-                f"shelf fallback{suffix}"
-            )
         if res["shared_tiles"]:
             lines.append(
-                f"note: {res['shared_tiles']} tile(s) shared by several objects "
-                f"were laid out with the built-in shelf packer so no islands "
-                f"overlap between objects"
+                f"note: {res['shared_tiles']} tile(s) are shared by several "
+                f"objects; their islands were co-packed so nothing overlaps "
+                f"between objects"
             )
         if not res.get("errors"):
             self.report({'INFO'}, " | ".join(lines))

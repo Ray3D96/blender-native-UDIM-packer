@@ -1,36 +1,40 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-"""UDIM grid packing pipeline built on Blender's native ``uv.pack_islands``.
+"""UDIM grid packing pipeline: one global uniform scale + rigid placement.
 
-Strategy (validated against Blender 5.2):
+Strategy (v2, validated against Blender 5.2):
 
-Multiple objects are treated as one shared texture set: their islands are
-pooled and balanced together, so no two islands ever overlap — even when they
-belong to different objects.  Each object is edited in its own isolated edit
-session; the original selection is restored afterwards.
+All objects are treated as one shared texture set.  Their islands are pooled
+and a single layout is solved for the whole pool, so no two islands ever
+overlap - even when they belong to different objects.
 
-1. Detect UV islands with :mod:`native_udim_packer.islands` (seam-aware).
-2. Optionally pre-scale islands to equalize texel density ("normalize").
-3. Balance the pooled islands across the U x Y tile grid (LPT scheduling:
-   largest island first, always into the currently emptiest tile).
-4. For every non-empty tile, in order:
-     a. select exactly that tile's faces;
-     b. translate them so their UV bounding-box minimum sits at the origin
-        (deterministic starting position for the native packer);
-     c. run ``bpy.ops.uv.pack_islands(udim_source='CLOSEST_UDIM', ...)`` which
-        packs the selection into a single 1x1 tile region;
-     d. measure where the packer actually put them and shift by the integer
-        delta to the assigned tile.  The measured re-offset makes the result
-        correct no matter which UDIM tile the native packer chose as its
-        target (it depends on editor context), and keeps every island inside
-        ``[tu, tu+1] x [tv, tv+1]``.
-   If the native operator fails for a tile, a pure-Python shelf packer places
-   that tile's islands manually (with 90-degree rotation when enabled).
-5. With "normalize" on, every single-owner tile is measured afterwards and,
-   if needed, uniformly shrunk back to the equalized texel density: the
-   native packer with ``scale=True`` scales small selections UP to fill the
-   tile, which would otherwise leave each tile at a different density.
+1. Detect UV islands with :mod:`native_udim_packer.islands` (seam-aware) on
+   read-only object-mode bmeshes.
+2. With "normalize" enabled, compute each island's equalizing scale
+   ``norm_scale = sqrt((total_uv / total_3d) * 3d_area_i / uv_area_i)`` -
+   but do NOT pre-apply it; it only feeds the layout reference sizes and
+   the final writeback.
+3. Solve a global rigid layout (:mod:`native_udim_packer.layout`): islands
+   are assigned to tiles (LPT load balancing, three deterministic orderings
+   tried and the best kept), each tile is greedily packed at reference
+   scale, and one uniform scale ``S*`` is derived so that every tile's
+   content fits its ``[margin, 1-margin]`` interior.  Nothing is rescaled
+   per tile afterwards: every island receives exactly one rigid transform
+   (scale ``norm_scale_i * S*``, optional 90-degree rotation, translation).
 
-Only bpy/bmesh and built-in operators are used; no external processes.
+Consequences:
+
+* Relative sizes between islands are preserved exactly.  With normalize on,
+  every island ends up with the same texel density across all objects -
+  the same guarantee as Blender's built-in "Average Islands Scale".  With
+  normalize off, any scale equalization the user performed beforehand is
+  left untouched (one uniform factor is applied to everything).
+* ``S*`` is the largest uniform scale this heuristic family can achieve, so
+  used tiles are filled as densely as possible.  When total content exceeds
+  grid capacity everything shrinks uniformly and proportions stay intact.
+
+Each object is edited in its own isolated edit session; the original
+selection is restored afterwards.  Only bpy/bmesh and built-in operators
+are used; no external processes.
 """
 from __future__ import annotations
 
@@ -44,9 +48,9 @@ from .islands import (
     detect_islands,
     island_bounds,
     place_island_into,
-    scale_faces_about,
-    translate_faces,
 )
+from .layout import Item as _LayoutItem
+from .layout import solve as _layout_solve
 
 
 def udim_number(tile_u: int, tile_v: int) -> int:
@@ -68,8 +72,7 @@ def normalize_scales(islands: list[Island]) -> float | None:
     overall UV footprint.  Degenerate islands are left untouched (scale 1).
 
     Returns the target density ratio ``total_uv / total_3d`` (or ``None``
-    when no island has usable areas); callers can use it to restore the
-    equalized density after packing.
+    when no island has usable areas).
     """
     good = [i for i in islands if i.uv_area > 1e-9 and i.world_area > 1e-9]
     tot_uv = sum(i.uv_area for i in good)
@@ -87,504 +90,274 @@ def normalize_scales(islands: list[Island]) -> float | None:
     return ratio
 
 
-def assign_tiles(islands: list[Island], grid_x: int, grid_y: int,
-                 area_of=None) -> dict[tuple[int, int], list[Island]]:
-    """Balance islands across the tile grid (LPT / longest processing time).
+# --------------------------------------------------------------------------
+# edit-session round-trip helpers
+# --------------------------------------------------------------------------
 
-    Islands are sorted by area (largest first) and each goes into the tile
-    with the lowest current load; ties break to the first tile in row-major
-    order, so results are deterministic.  ``area_of`` may override the area
-    used for balancing (e.g. post-normalization areas).
-    """
-    if area_of is None:
-        area_of = lambda i: i.uv_area  # noqa: E731
-    tiles = [(i, j) for i in range(grid_x) for j in range(grid_y)]
-    load = {t: 0.0 for t in tiles}
-    assignment: dict[tuple[int, int], list[Island]] = {t: [] for t in tiles}
-    for isl in sorted(islands, key=area_of, reverse=True):
-        t = min(tiles, key=lambda t: load[t])
-        assignment[t].append(isl)
-        load[t] += area_of(isl)
-    return assignment
-
-
-def _select_only(bm, face_indices: set[int]) -> None:
-    for f in tuple(bm.faces):
-        f.select_set(f.index in face_indices)
-
-
-def _selection_bounds(bm, uvl, face_indices: set[int]):
-    minx = miny = math.inf
-    maxx = maxy = -math.inf
-    for f in tuple(bm.faces):
-        if f.index in face_indices:
-            for l in tuple(f.loops):
-                u = l[uvl].uv
-                if u.x < minx:
-                    minx = u.x
-                if u.x > maxx:
-                    maxx = u.x
-                if u.y < miny:
-                    miny = u.y
-                if u.y > maxy:
-                    maxy = u.y
-    return (minx, miny, maxx, maxy)
-
-
-def _faces_uv_area(bm, uvl, face_indices: set[int]) -> float:
-    """Shoelace UV area of the given faces (same convention as detect_islands)."""
-    total = 0.0
-    for f in tuple(bm.faces):
-        if f.index in face_indices:
-            loops = tuple(f.loops)
-            n = len(loops)
-            a2 = 0.0
-            for i in range(n):
-                u1 = loops[i][uvl].uv
-                u2 = loops[(i + 1) % n][uvl].uv
-                a2 += u1.x * u2.y - u2.x * u1.y
-            total += abs(a2) * 0.5
-    return total
-
-
-def _shelf_layout(items: list, m: float, g: float):
-    """Virtual shelf packing (no bmesh writes).
-
-    ``items`` is a list of ``(island, w, h)`` at unit scale; ``g`` is the
-    global scale factor.  Returns ``(slots, used)`` where each slot is
-    ``(island, u0, v_top, fw, fh, sf, rot)`` (final width/height, total scale
-    factor for this island, rotation steps) and ``used`` is the total shelf
-    height consumed from the top of the interior.
-    """
-    W = 1.0 - 2.0 * m
-    shelves: list[list[float]] = []   # [u_cursor, v_top, height]
-    slots: list[tuple] = []
-    for isl, w, h in items:
-        rot = 0
-        bw, bh = w * g, h * g
-        if bw > W and bh <= W:        # rotate once to fit the width
-            bw, bh, rot = bh, bw, 1
-        sf = g * min(1.0, W / bw) * (1.0 - 1e-6)   # total scale for this island
-        fw = h * sf if rot else w * sf             # final footprint after rotation
-        fh = w * sf if rot else h * sf
-
-        slot = None
-        for si in range(len(shelves)):
-            uc, vt, ht = shelves[si]
-            if fh <= ht + 1e-9 and uc + fw <= W + 1e-9:
-                slot = (si, uc, vt)
-                break
-        if slot is None:
-            used = sum(sh[2] for sh in shelves)
-            vt = (1.0 - m) - used
-            # record the shelf height *including* a trailing gap, so the next
-            # shelf starts m below this one's bottom edge
-            shelves.append([m, vt, fh + m])
-            slot = (len(shelves) - 1, m, vt)
-
-        si, uc, vt = slot
-        slots.append((isl, uc, vt, fw, fh, sf, rot))
-        shelves[si][0] = uc + fw + m   # gap between items
-    return slots, sum(sh[2] for sh in shelves)
-
-
-def _shelf_slots(items: list, m: float) -> list:
-    """Two-phase virtual shelf layout with global shrink-to-fit.
-
-    ``items`` is a list of ``(island, w, h)`` at *current* UV scale.  Returns
-    the final slot list from :func:`_shelf_layout`, globally shrunk (a few
-    iterations at most) until the shelf stack fits the tile interior.
-    """
-    cap_h = 1.0 - 2.0 * m
-    items = sorted(items, key=lambda t: t[1] * t[2], reverse=True)
-    g = 1.0
-    slots: list[tuple] = []
-    for _ in range(4):
-        slots, used = _shelf_layout(items, m, g)
-        if used <= cap_h + 1e-9:
-            break
-        # shrink everything geometrically; shelf waste shrinks too, so this
-        # converges quickly (one extra pass is almost always enough)
-        g *= max(math.sqrt(cap_h / used) * 0.98, 0.05)
-    return slots
-
-
-def _manual_shelf_pack(bm, uvl, isl_list: list[Island], margin: float,
-                       offset: tuple = (0, 0)) -> None:
-    """Pure-Python fallback: shelf-pack a tile's islands into one UDIM tile.
-
-    Each island is scaled about its center, optionally rotated 90 degrees,
-    and translated into its slot inside the tile at integer offset ``(tu, tv)``.
-    Containment is guaranteed even for over-capacity tiles (see
-    :func:`_shelf_slots`); no overlap is produced.
-    """
-    m = max(float(margin), 1e-4)
-    items = []
-    for i in isl_list:
-        minx, miny, maxx, maxy = island_bounds(bm, uvl, i.face_indices)
-        items.append((i, max(maxx - minx, 1e-6), max(maxy - miny, 1e-6)))
-
-    ox, oy = float(offset[0]), float(offset[1])
-    for isl, u0, vt, fw, fh, sf, rot in _shelf_slots(items, m):
-        place_island_into(bm, uvl, isl.face_indices,
-                          (u0 + ox, vt - fh + oy, u0 + fw + ox, vt + oy),
-                          scale=sf, rotate_steps=rot)
-
-
-def _island_size(i: Island) -> tuple[float, float]:
-    """Current (post-normalization) bounding-box size of an island."""
-    w = max(i.max_uv[0] - i.min_uv[0], 1e-6)
-    h = max(i.max_uv[1] - i.min_uv[1], 1e-6)
-    s = i.norm_scale or 1.0
-    return w * s, h * s
-
-
-def _native_pack_tile(bm, uvl, ob, me, isl_list: list[Island], tu: int, tv: int,
-                      rotate_90: bool, margin: float) -> str:
-    """Native per-tile pack of one object's island group.
-
-    Selects exactly the tile's faces, translates their bounding-box minimum
-    to the origin, runs ``uv.pack_islands`` (which packs the selection into a
-    single 1x1 region), measures where it actually landed and shifts by the
-    integer delta to the assigned tile.  Returns "" on success or a reason
-    string; the caller falls back to :func:`_manual_shelf_pack` then.
-    """
-    face_idx: set[int] = set()
-    for i in isl_list:
-        face_idx |= i.face_indices
-
-    _select_only(bm, face_idx)
-    # deterministic start: bounding-box minimum at the origin
-    minx, miny, _, _ = _selection_bounds(bm, uvl, face_idx)
-    translate_faces(bm, uvl, face_idx, -minx, -miny)
-    bmesh.update_edit_mesh(me)
-
-    reason = ""
-    try:
-        with bpy.context.temp_override(object=ob, active_object=ob):
-            res = bpy.ops.uv.pack_islands(
-                udim_source='CLOSEST_UDIM',
-                rotate=bool(rotate_90),
-                rotate_method='CARDINAL' if rotate_90 else 'ANY',
-                scale=True,
-                merge_overlap=False,
-                margin_method='FRACTION',
-                margin=float(margin),
-            )
-        if res != {'FINISHED'}:
-            reason = f"native returned {res}"
-    except (RuntimeError, AttributeError, TypeError) as exc:
-        reason = f"native raised: {exc}"
-
-    if not reason:
-        # measure the tile the native packer actually used and shift by the
-        # integer delta to our assigned tile.
-        minx, miny, maxx, maxy = _selection_bounds(bm, uvl, face_idx)
-        landed_u = int(round(minx))
-        landed_v = int(round(miny))
-        if (maxx - minx > 1.0 + 1e-4) or (maxy - miny > 1.0 + 1e-4):
-            # the selection was not packed into a single tile region; fall
-            # back to the deterministic manual shelf packer.
-            reason = "native spread selection across tiles"
-        else:
-            du = tu - landed_u
-            dv = tv - landed_v
-            if du or dv:
-                translate_faces(bm, uvl, face_idx, du, dv)
-
-    bmesh.update_edit_mesh(me)
-    return reason
-
-
-def _enter_edit(ob) -> None:
-    """Enter single-object edit mode for ``ob`` (isolated object selection)."""
+def _enter_edit(ob):
+    """Enter edit mode for ``ob``; returns True when this call entered it."""
+    if bpy.context.object is not None and bpy.context.object.mode == 'EDIT':
+        return False
     bpy.ops.object.select_all(action='DESELECT')
     ob.select_set(True)
     bpy.context.view_layer.objects.active = ob
-    if bpy.context.mode != 'EDIT_MESH':
-        bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.object.mode_set(mode='EDIT')
+    return True
 
 
-def _exit_edit() -> None:
-    if bpy.context.mode == 'EDIT_MESH':
+def _exit_edit():
+    if bpy.context.object is not None and bpy.context.object.mode == 'EDIT':
         bpy.ops.object.mode_set(mode='OBJECT')
 
 
-def _restore_selection(saved: set) -> None:
-    _exit_edit()
-    for o in tuple(bpy.context.selected_objects):
-        o.select_set(False)
-    for o in saved:
-        if o.name in bpy.data.objects:
-            o.select_set(True)
-
-
-def _finish(started_in_edit: bool, saved: set, original_active) -> None:
-    """Restore the object selection and, when packing started from (multi-)
-    edit mode, return to it — so packing never yanks the user out of their
-    workflow."""
-    _restore_selection(saved)
-    if started_in_edit and original_active is not None \
-            and original_active.name in bpy.data.objects:
-        original_active.select_set(True)
-        bpy.context.view_layer.objects.active = original_active
+def _finish(started_in_edit: bool, saved, original_active):
+    """Restore the pre-call selection state (and edit mode) exactly."""
+    for o in bpy.context.selected_objects:
         try:
-            bpy.ops.object.mode_set(mode='EDIT')
+            o.select_set(False)
         except RuntimeError:
             pass
-
-
-def pack_objects(objs, grid_x: int, grid_y: int, normalize: bool,
-                 rotate_90: bool, margin: float) -> dict:
-    """Pack the UV islands of several objects into one *shared* UDIM grid.
-
-    All objects are treated as a single texture set: their islands are
-    balanced across the whole grid together and never overlap, even when they
-    belong to different objects.  Tiles whose islands all come from one
-    object use the native packer; tiles shared by several objects are laid
-    out with the built-in shelf packer (the native operator can only see one
-    object at a time).
-
-    Mode and selection state are managed internally: each object is edited in
-    its own isolated edit session, and the original object selection is
-    restored.  When packing starts from (multi-)edit mode, the user is
-    returned to it afterwards with the same objects being edited.  Returns
-    ``{"objects": {name: stats}, "fallback_tiles": n, "fallback_reasons":
-    [...], "shared_tiles": n}`` plus an optional ``"errors": {name: msg}``
-    for objects that could not be processed, or ``{"error": msg}`` when
-    nothing could be done.
-    """
-    saved_selection = set(bpy.context.selected_objects)
-    original_active = bpy.context.active_object
-    started_in_edit = bpy.context.mode == 'EDIT_MESH'
+    if saved is not None:
+        for name in saved:
+            ob = bpy.data.objects.get(name)
+            if ob is not None:
+                try:
+                    ob.select_set(True)
+                except (RuntimeError, TypeError):
+                    pass
+    if original_active is not None and original_active.name in bpy.data.objects:
+        bpy.context.view_layer.objects.active = original_active
     if started_in_edit:
-        # Leave (multi-)edit mode first so the per-object isolated edit
-        # sessions below start from a clean state.
-        bpy.ops.object.mode_set(mode='OBJECT')
+        act = bpy.context.view_layer.objects.active
+        if act is not None and act.type == 'MESH':
+            try:
+                bpy.ops.object.mode_set(mode='EDIT')
+            except RuntimeError:
+                pass
 
-    # ---- phase 1: detect islands on every object --------------------------
-    state: list[dict] = []   # {"ob", "me", "islands"}
-    errors: dict[str, str] = {}
-    for ob in objs:
-        me = ob.data
-        if not me.uv_layers or me.uv_layers.active is None:
-            errors[ob.name] = "no active UV map"
-            continue
-        try:
-            _enter_edit(ob)
-            bm = bmesh.from_edit_mesh(me)
-            uvl = bm.loops.layers.uv.active
-            islands = detect_islands(bm, uvl) if uvl is not None else []
-            bm.free()
-            _exit_edit()
-        except RuntimeError as exc:
-            _exit_edit()
-            errors[ob.name] = str(exc)
-            continue
+
+# --------------------------------------------------------------------------
+# island detection / matching
+# --------------------------------------------------------------------------
+
+def _island_fingerprint(isl) -> tuple:
+    """Content-based identity of an island (independent of bmesh indices).
+
+    Two islands match when they cover the same number of faces with the
+    same 3D area, the same UV area, and the same UV bounding-box size
+    (all measured by detect_islands).  Remaining ambiguity is limited to
+    truly congruent islands, which are interchangeable for packing
+    purposes, so first-come matching is safe.
+    """
+    w = isl.max_uv[0] - isl.min_uv[0]
+    h = isl.max_uv[1] - isl.min_uv[1]
+    return (len(isl.face_indices), round(isl.world_area, 6),
+            round(isl.uv_area, 6), round(w, 4), round(h, 4))
+
+
+def _match_islands(ref_islands: list[Island],
+                   live_islands: list[Island]) -> dict[int, Island]:
+    """Map reference islands to fresh live islands by fingerprint.
+
+    Returns ``{id(ref_island): live_island}``.  Raises RuntimeError when an
+    island cannot be matched (would mean the geometry changed under us).
+    """
+    buckets: dict[tuple, list[Island]] = {}
+    for li in live_islands:
+        buckets.setdefault(li._fingerprint, []).append(li)
+    out: dict[int, Island] = {}
+    for ri in ref_islands:
+        b = buckets.get(ri._fingerprint)
+        if not b:
+            raise RuntimeError(
+                f"island matching failed (fp={ri._fingerprint}); "
+                "mesh geometry changed between detect and writeback")
+        out[id(ri)] = b.pop(0)
+    return out
+
+
+def _detect_object(ob) -> list[Island] | None:
+    """Detect islands on ``ob`` in object mode (read-only bmesh).
+
+    Returns the island list, or None when the object has no usable UVs.
+    Islands carry a temporary ``_fingerprint`` used for live matching.
+    """
+    me = ob.data
+    if not getattr(me, "uv_layers", None) or len(me.uv_layers) == 0:
+        return None
+    bm = bmesh.new()
+    try:
+        bm.from_mesh(me)
+        uvl = bm.loops.layers.uv.active
         if uvl is None:
-            errors[ob.name] = "active UV layer not found in bmesh"
-            continue
-        if not islands:
-            errors[ob.name] = "no UV islands found"
+            return None
+        islands = detect_islands(bm, uvl)
+        for i in islands:
+            i._fingerprint = _island_fingerprint(i)
+    finally:
+        bm.free()
+    return islands or None
+
+
+# --------------------------------------------------------------------------
+# main pipeline
+# --------------------------------------------------------------------------
+
+def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
+                 normalize_scale: bool = False, rotate_90: bool = True,
+                 margin: float = 0.01) -> dict:
+    """Pack the UV islands of ``objects`` into a UDIM grid (see module doc).
+
+    Returns per-object stats plus global diagnostics; on total failure
+    returns ``{"error": ...}``.
+    """
+    # --- 1) read-only detection in object mode -----------------------------
+    state: list[dict] = []
+    errors: dict[str, str] = {}
+    for ob in objects:
+        islands = _detect_object(ob)
+        if islands is None:
+            errors[ob.name] = "no UV layer found"
             continue
         for i in islands:
             i.owner = ob
-        state.append({"ob": ob, "me": me, "islands": islands})
-
+        state.append({"ob": ob, "islands": islands})
     if not state:
-        _finish(started_in_edit, saved_selection, original_active)
-        return {"error": "; ".join(f"{n}: {m}" for n, m in errors.items())}
+        return {"error": "no packable UV islands found",
+                "objects": {}, "errors": errors}
 
+    # --- 2) normalize scales (computed, NOT pre-applied) --------------------
     all_islands = [i for s in state for i in s["islands"]]
+    if normalize_scale:
+        normalize_scales(all_islands)
 
-    # ---- phase 2: optional texel-density equalization ----------------------
-    target_ratio: float | None = None
-    if normalize:
-        target_ratio = normalize_scales(all_islands)
+    # --- 3) global rigid layout at reference scale --------------------------
+    items: list[_LayoutItem] = []
+    ref_by_index: dict[int, tuple[Island, float]] = {}
+    for n, i in enumerate(all_islands):
+        minx, miny, maxx, maxy = i.min_uv[0], i.min_uv[1], i.max_uv[0], i.max_uv[1]
+        s_norm = i.norm_scale if i.norm_scale is not None else 1.0
+        w = max((maxx - minx) * s_norm, 1e-6)
+        h = max((maxy - miny) * s_norm, 1e-6)
+        items.append(_LayoutItem(n, w, h))
+        ref_by_index[n] = (i, s_norm)
 
-    # ---- phase 3: global tile balancing ------------------------------------
-    def _balancing_area(i):
-        s = i.norm_scale or 1.0
-        return i.uv_area * s * s
-    assignment = assign_tiles(all_islands, grid_x, grid_y,
-                              area_of=_balancing_area if normalize else None)
+    S, placements = _layout_solve(items, grid_x, grid_y, margin, rotate_90)
 
-    # ---- phase 4: precompute shelf slots for tiles shared by several objects
-    m = max(float(margin), 1e-4)
-    shared_slots: dict[tuple[int, int], list] = {}
-    for (tu, tv), isl_list in assignment.items():
-        if len({i.owner for i in isl_list}) > 1:
-            items = [(i, *(_island_size(i))) for i in isl_list]
-            shared_slots[(tu, tv)] = _shelf_slots(items, m)
-
-    # ---- phase 5: place everything, one isolated edit session per object ---
-    fallback_tiles = 0
-    fallback_reasons: list[str] = []
-    for s in state:
-        ob, me = s["ob"], s["me"]
-        try:
-            _enter_edit(ob)
-        except RuntimeError as exc:
-            errors[ob.name] = str(exc)
-            continue
-        bm = None
-        try:
-            bm = bmesh.from_edit_mesh(me)
-            uvl = bm.loops.layers.uv.active
-
-            if normalize:
-                for i in s["islands"]:
-                    if i.norm_scale and abs(i.norm_scale - 1.0) > 1e-6:
-                        scale_faces_about(bm, uvl, i.face_indices,
-                                          i.norm_scale, i.centroid)
-                bmesh.update_edit_mesh(me)
-
-            for (tu, tv), isl_list in assignment.items():
-                mine = [i for i in isl_list if i.owner is ob]
-                if not mine:
-                    continue
-                if (tu, tv) in shared_slots:
-                    # tile shared with other objects: use the precomputed
-                    # combined layout so islands from different objects
-                    # cannot overlap
-                    for isl, u0, vt, fw, fh, sf, rot in shared_slots[(tu, tv)]:
-                        if isl.owner is not ob:
-                            continue
-                        place_island_into(bm, uvl, isl.face_indices,
-                                          (u0 + tu, vt - fh + tv,
-                                           u0 + fw + tu, vt + tv),
-                                          scale=sf, rotate_steps=rot)
-                else:
-                    reason = _native_pack_tile(bm, uvl, ob, me, mine, tu, tv,
-                                               rotate_90, margin)
-                    if reason:
-                        _manual_shelf_pack(bm, uvl, mine, margin,
-                                           offset=(tu, tv))
-                        fallback_tiles += 1
-                        fallback_reasons.append(f"tile ({tu},{tv}): {reason}")
-        except RuntimeError as exc:
-            errors[ob.name] = str(exc)
-        finally:
-            if bm is not None:
-                # leave a clean selection state for this object
-                for f in tuple(bm.faces):
-                    f.select_set(False)
-                bmesh.update_edit_mesh(me)
-                bm.free()
-            _exit_edit()
-
-    # ---- phase 6: restore the normalized texel density ---------------------
-    # uv.pack_islands(scale=True) scales a small selection UP to fill the
-    # tile, which would silently break the texel-density equalization (each
-    # tile ends up at a different fill factor).  For every single-owner tile
-    # we measure the achieved ratio and uniformly shrink the content back to
-    # the target.  We never upscale: that could push islands out of their
-    # tile.  Shared tiles only use the shelf packer (scale <= 1), so they are
-    # already at or below the target and are skipped.
-    if target_ratio is not None:
-        for (tu, tv), isl_list in assignment.items():
-            owners = {i.owner for i in isl_list}
-            if len(owners) != 1:
-                continue
-            ob = next(iter(owners))
-            me = ob.data
-            try:
-                _enter_edit(ob)
-            except RuntimeError as exc:
-                errors[ob.name] = str(exc)
-                continue
-            bm = None
-            try:
-                bm = bmesh.from_edit_mesh(me)
-                uvl = bm.loops.layers.uv.active
-                uv_sum = sum(_faces_uv_area(bm, uvl, i.face_indices)
-                             for i in isl_list)
-                world_sum = sum(i.world_area for i in isl_list)
-                if world_sum > 1e-9:
-                    r_t = uv_sum / world_sum
-                    if r_t > target_ratio * (1.0 + 1e-3):
-                        f = math.sqrt(target_ratio / r_t)
-                        cx, cy = tu + 0.5, tv + 0.5
-                        for i in isl_list:
-                            scale_faces_about(bm, uvl, i.face_indices,
-                                              f, (cx, cy))
-                        bmesh.update_edit_mesh(me)
-            except RuntimeError as exc:
-                errors[ob.name] = str(exc)
-            finally:
-                if bm is not None:
-                    for ff in tuple(bm.faces):
-                        ff.select_set(False)
-                    bmesh.update_edit_mesh(me)
-                    bm.free()
-                _exit_edit()
-
-    _finish(started_in_edit, saved_selection, original_active)
-
-    objects = {}
-    for s in state:
-        tiles = sorted({t for t, lst in assignment.items()
-                        if any(i.owner is s["ob"] for i in lst)})
-        objects[s["ob"].name] = {
-            "islands": len(s["islands"]),
-            "tiles_used": tiles,
-            "udims": [udim_number(u, v) for u, v in tiles],
+    # Final UV rect + writeback parameters per island.
+    plan: dict[int, dict] = {}
+    for p in placements:
+        i, s_norm = ref_by_index[p.item]
+        x0 = p.tile_u + margin + p.x0 * S
+        y0 = p.tile_v + margin + p.y0 * S
+        plan[id(i)] = {
+            "aabb": (x0, y0, x0 + p.w * S, y0 + p.h * S),
+            "scale": s_norm * S,
+            "rotated": p.rotated,
+            "tile": (p.tile_u, p.tile_v),
         }
 
-    result = {
-        "objects": objects,
-        "fallback_tiles": fallback_tiles,
-        "fallback_reasons": fallback_reasons,
-        "shared_tiles": len(shared_slots),
-    }
-    if errors:
-        result["errors"] = errors
-    return result
+    # --- 4) per-object writeback in isolated edit sessions ------------------
+    results: dict[str, dict] = {}
+    tile_owners: dict[tuple[int, int], set] = {}
+    for s in state:
+        ob = s["ob"]
+        started_in_edit = (bpy.context.object is not None
+                           and bpy.context.object.mode == 'EDIT')
+        saved = [o.name for o in bpy.context.selected_objects]
+        original_active = bpy.context.view_layer.objects.active
+        try:
+            _enter_edit(ob)
+            me = ob.data
+            bm = bmesh.from_edit_mesh(me)
+            uvl = bm.loops.layers.uv.active
+            live = detect_islands(bm, uvl)
+            for li in live:
+                li._fingerprint = _island_fingerprint(li)
+            match = _match_islands(s["islands"], live)
+            for i in s["islands"]:
+                pi = plan[id(i)]
+                li = match[id(i)]
+                place_island_into(
+                    bm, uvl, li.face_indices, pi["aabb"],
+                    scale=pi["scale"],
+                    rotate_steps=1 if pi["rotated"] else 0)
+            bmesh.update_edit_mesh(me)
+        except Exception as exc:  # noqa: BLE001 - per-object isolation
+            errors[ob.name] = f"packing failed: {exc}"
+        finally:
+            try:
+                for f in tuple(bm.faces):
+                    f.select = False
+                bm.free()
+            except Exception:  # noqa: BLE001 - bmesh may be gone on error
+                pass
+            _exit_edit()
+        _finish(started_in_edit, saved, original_active)
 
+        if ob.name in errors and "packing failed" in errors[ob.name]:
+            continue
+        tiles_used = sorted({plan[id(i)]["tile"] for i in s["islands"]})
+        results[ob.name] = {
+            "islands": len(s["islands"]),
+            "tiles_used": tiles_used,
+            "udims": [udim_number(u, v) for (u, v) in tiles_used],
+        }
+        for (tu, tv) in tiles_used:
+            tile_owners.setdefault((tu, tv), set()).add(ob.name)
 
-def pack_object(ob, grid_x: int, grid_y: int, normalize: bool,
-                rotate_90: bool, margin: float) -> dict:
-    """Pack one object's active UV map into the UDIM grid.
+    if not results:
+        return {"error": "no packable UV islands found",
+                "objects": {}, "errors": errors}
 
-    Thin wrapper around :func:`pack_objects` for a single target; mode and
-    selection state are managed internally.  Returns a stats dict:
-    ``{"islands": n, "tiles_used": [(u, v), ...], "udims": [int, ...],
-    "fallback_tiles": int, "fallback_reasons": [...]}`` or ``{"error": msg}``.
-    """
-    res = pack_objects([ob], grid_x, grid_y, normalize, rotate_90, margin)
-    if "error" in res:
-        return {"error": res["error"]}
-    errs = res.get("errors", {})
-    if ob.name in errs:
-        return {"error": f"{ob.name}: {errs[ob.name]}"}
-    s = res["objects"][ob.name]
+    used_tiles = sorted(tile_owners)
     return {
-        "islands": s["islands"],
-        "tiles_used": s["tiles_used"],
-        "udims": s["udims"],
-        "fallback_tiles": res["fallback_tiles"],
-        "fallback_reasons": res["fallback_reasons"],
+        "objects": results,
+        "fallback_tiles": 0,
+        "fallback_reasons": [],
+        "shared_tiles": sum(1 for owners in tile_owners.values()
+                            if len(owners) > 1),
+        "global_scale": S,
+        "tiles_used_total": used_tiles,
     }
 
+
+def pack_object(ob, grid_x: int = 2, grid_y: int = 2,
+                normalize_scale: bool = False, rotate_90: bool = True,
+                margin: float = 0.01) -> dict:
+    """Convenience wrapper for a single object (used by tests/probes)."""
+    result = pack_objects([ob], grid_x, grid_y, normalize_scale,
+                          rotate_90, margin)
+    if "error" in result:
+        raise RuntimeError(result["error"])
+    entry = result["objects"].get(
+        ob.name, {"islands": 0, "tiles_used": [], "udims": []})
+    return {**entry, "fallback_tiles": 0, "fallback_reasons": []}
+
+
+# --------------------------------------------------------------------------
+# verification helper (used by tests)
+# --------------------------------------------------------------------------
 
 def verify_packing(ob, grid_x: int, grid_y: int) -> dict:
-    """Post-pack audit (used by tests): per-island tile + containment check.
+    """Audit the current UV state of ``ob`` against the UDIM grid.
 
-    Returns ``{"islands": n, "all_inside": bool, "per_island": [...]}``.
+    Must be called while ``ob`` is in edit mode.  Checks that every island
+    lies fully inside exactly one tile of the grid and reports per-island
+    bounds.  Overlap checking between islands is done by the caller on the
+    returned bounds (the packer guarantees it by construction).
     """
     me = ob.data
     bm = bmesh.from_edit_mesh(me)
     uvl = bm.loops.layers.uv.active
     islands = detect_islands(bm, uvl)
+    eps = 1e-4
     per = []
     all_inside = True
-    eps = 1e-4
     for i in islands:
         minx, miny, maxx, maxy = island_bounds(bm, uvl, i.face_indices)
-        # An island sits inside a single unit tile when its bounding box does
-        # not cross a tile boundary; the owning tile is floor of the minimum.
-        tu = int(math.floor(minx + eps)) if minx >= -eps else None
-        tv = int(math.floor(miny + eps)) if miny >= -eps else None
+        tu = math.floor(minx + eps) if maxx - minx < 1.0 - 2 * eps else None
+        tv = math.floor(miny + eps) if maxy - miny < 1.0 - 2 * eps else None
         single_tile = (
             tu is not None and tv is not None
             and math.floor(maxx - eps) == tu and math.floor(maxy - eps) == tv

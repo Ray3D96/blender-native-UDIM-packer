@@ -20,7 +20,7 @@ def check(name, cond, detail=""):
 
 
 # ---------------------------------------------------------------- install --
-ZPATH = "/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.1.4.zip"
+ZPATH = "/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.1.5.zip"
 r = bpy.ops.preferences.addon_install(filepath=ZPATH)
 check("install from zip", r == {'FINISHED'}, str(r))
 bpy.ops.preferences.addon_enable(module="native_udim_packer")
@@ -48,9 +48,9 @@ _A.register()
 
 has_op = hasattr(bpy.ops.native_udim, "pack_to_grid")
 check("operator registered", has_op)
-check("release version is 0.1.4", tuple(_A.bl_info["version"]) == (0, 1, 4),
+check("release version is 0.1.5", tuple(_A.bl_info["version"]) == (0, 1, 5),
       str(tuple(_A.bl_info["version"])))
-check("VERSION string for panel stamp", _A.VERSION == "0.1.4", _A.VERSION)
+check("VERSION string for panel stamp", _A.VERSION == "0.1.5", _A.VERSION)
 
 # Settings must be a persistent PropertyGroup on the window manager - the
 # only pattern whose widgets are interactive in Blender 5.x (widgets bound
@@ -403,20 +403,14 @@ t2 = shrunken_island_tris(o2)
 xov = count_overlaps(t1, t2, self_pairs=False)
 check("T5 no cross-object UV overlap", xov == 0, f"cross pairs={xov}")
 
-# --- Test 6: manual shelf fallback (direct call) ---------------------------
+# --- Test 6: single-tile engine pack (dense, no overlaps) ------------------
 clean_scene()
 ob = make_test_object("t6")
-bpy.ops.object.mode_set(mode='EDIT')
 from native_udim_packer import packer as P
-bm = bmesh.from_edit_mesh(ob.data)
-uvl = bm.loops.layers.uv.active
-islands = P.detect_islands(bm, uvl)
-P._manual_shelf_pack(bm, uvl, islands, 0.01)
-bmesh.update_edit_mesh(ob.data)
-bm.free()
-bpy.ops.object.mode_set(mode='OBJECT')
+r6 = P.pack_objects([ob], 1, 1, False, True, 0.01)
 ok, res = audit(ob, 1, 1)
-check("T6 manual shelf pack fits [0,1]^2", ok, f"islands={res['islands']}")
+check("T6 single-tile engine pack fits [0,1]^2",
+      "error" not in r6 and ok, f"islands={res['islands']}")
 # overlap check via AABBs
 stats = uv_stats(ob)
 boxes = [(s["bounds"][0], s["bounds"][1], s["bounds"][2], s["bounds"][3]) for s in stats]
@@ -427,9 +421,9 @@ for i in range(len(boxes)):
         if (a[0] < b[2] - 1e-6 and b[0] < a[2] - 1e-6 and
                 a[1] < b[3] - 1e-6 and b[1] < a[3] - 1e-6):
             overlap = True
-check("T6 no AABB overlaps in fallback", not overlap, f"n={len(boxes)}")
+check("T6 no AABB overlaps in single-tile pack", not overlap, f"n={len(boxes)}")
 
-# --- Test 6b: manual fallback under over-capacity -------------------------
+# --- Test 6b: over-capacity shrinks uniformly, still fits ------------------
 clean_scene()
 ob = make_test_object("t6b")
 bpy.ops.object.mode_set(mode='EDIT')
@@ -440,13 +434,12 @@ for f in tuple(bm.faces):          # blow up UVs 3x -> total area >> one tile
         l[uvl].uv.x *= 3.0
         l[uvl].uv.y *= 3.0
 bmesh.update_edit_mesh(ob.data)
-islands = P.detect_islands(bm, uvl)
-P._manual_shelf_pack(bm, uvl, islands, 0.01)
-bmesh.update_edit_mesh(ob.data)
 bm.free()
 bpy.ops.object.mode_set(mode='OBJECT')
+r6b = P.pack_objects([ob], 1, 1, False, True, 0.01)
 ok, res = audit(ob, 1, 1)
-check("T6b over-capacity fallback fits [0,1]^2", ok, f"islands={res['islands']}")
+check("T6b over-capacity pack fits [0,1]^2 (uniform shrink)",
+      "error" not in r6b and ok, f"islands={res['islands']} scale={r6b.get('global_scale')}")
 
 # --- Test 7: rotation off vs on still valid --------------------------------
 clean_scene()
@@ -456,7 +449,7 @@ ok, res = audit(ob, 2, 2)
 check("T7 rotate=off packs validly", ok and r == {'FINISHED'},
       f"islands={res['islands']}")
 
-# --- Test 8: 3x2 grid, two-cube mesh (exercises fallback tile offsets) -----
+# --- Test 8: 3x2 grid, two-cube mesh (dense multi-tile pack) ---------------
 clean_scene()
 bpy.ops.mesh.primitive_cube_add(size=2)
 a = bpy.context.active_object
@@ -565,6 +558,76 @@ ok, res = audit(mon, 1, 3)
 udims_y = sorted({p["udim"] for p in res["per_island"] if p["udim"]})
 check("T10 Y=3 packs into exactly UDIM 1001/1011/1021",
       ok and set(udims_y) == {1001, 1011, 1021}, f"udims={udims_y}")
+
+# --- Test 12: pack must NOT break pre-existing scale averaging -------------
+# v2 applies exactly one uniform factor to every island (normalize off), so
+# the spread of per-island texel densities must be unchanged by packing.
+clean_scene()
+ob = make_test_object("t12")
+spread_before = density_spread(ob)
+run_pack(ob, 2, 2, normalize=False, rotate=True)
+spread_after = density_spread(ob)
+check("T12 pack preserves relative texel densities (normalize off)",
+      spread_before is not None and spread_after is not None
+      and abs(spread_after / spread_before - 1.0) < 1e-6,
+      f"before={spread_before:.6f} after={spread_after:.6f}")
+
+# --- Test 13: normalize = uniform texel density, cross-object --------------
+clean_scene()
+ob = make_test_object("t13")
+run_pack(ob, 2, 2, normalize=True, rotate=True)
+stats = uv_stats(ob)
+dens = [s["uv_area"] / s["world_area"] for s in stats
+        if s["world_area"] > 1e-9 and s["uv_area"] > 1e-9]
+spread_on = max(dens) / min(dens)
+check("T13 normalize gives uniform texel density (single object)",
+      spread_on < 1.001, f"spread={spread_on:.6f}")
+
+clean_scene()
+o_a = make_test_object("t13a")
+bpy.ops.mesh.primitive_cube_add(size=1.5, location=(0, 10, 0))
+o_b = bpy.context.active_object
+o_b.name = "t13b"
+bpy.ops.object.mode_set(mode='EDIT')
+bpy.ops.mesh.select_all(action='SELECT')
+bpy.ops.uv.smart_project(angle_limit=1.15192, island_margin=0.02)
+bpy.ops.object.mode_set(mode='OBJECT')
+set_grid(2, 2, True, True, 0.01)
+bpy.context.window_manager.native_udim.use_selected = True
+bpy.ops.object.select_all(action='DESELECT')
+o_a.select_set(True); o_b.select_set(True)
+bpy.context.view_layer.objects.active = o_a
+r13 = bpy.ops.native_udim.pack_to_grid()
+da = [s["uv_area"] / s["world_area"] for s in uv_stats(o_a)
+      if s["world_area"] > 1e-9]
+db = [s["uv_area"] / s["world_area"] for s in uv_stats(o_b)
+      if s["world_area"] > 1e-9]
+all_d = da + db
+spread_xo = max(all_d) / min(all_d)
+check("T13 normalize equalizes density ACROSS objects",
+      r13 == {'FINISHED'} and spread_xo < 1.001,
+      f"cross-object spread={spread_xo:.6f} (a:{len(da)} b:{len(db)})")
+
+# --- Test 14: used tiles are filled densely --------------------------------
+clean_scene()
+ob = make_test_object("t14")
+r14 = P.pack_objects([ob], 2, 2, False, True, 0.01)
+ok, res = audit(ob, 2, 2)
+# per-tile fill from island bounding boxes (interior = (1-2m)^2)
+tile_area = {}
+for p in res["per_island"]:
+    if p["tile"] is None:
+        continue
+    w = p["bounds"][2] - p["bounds"][0]
+    h = p["bounds"][3] - p["bounds"][1]
+    tile_area[p["tile"]] = tile_area.get(p["tile"], 0.0) + w * h
+interior = (1 - 2 * 0.01) ** 2
+fills = {t: v / interior for t, v in tile_area.items()}
+lo, hi = min(fills.values()), max(fills.values())
+check("T14 used tiles filled densely and balanced",
+      "error" not in r14 and ok and len(fills) >= 2
+      and lo >= 0.40 and hi / lo <= 1.5,
+      f"fills={ {t: round(v, 3) for t, v in fills.items()} }")
 
 # --- Test 11: panel draw() headless crash guard ----------------------------
 # Blender 5.x raises AttributeError when draw() assigns attributes to the

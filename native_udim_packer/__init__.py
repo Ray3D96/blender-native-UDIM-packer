@@ -3,8 +3,9 @@
 
 Packs UV islands of the active/selected objects into a user-defined UDIM
 tile grid (e.g. 1x1, 2x2, 4x1) using only Blender's built-in facilities:
-bmesh island detection, ``bpy.ops.uv.pack_islands`` as the packing engine
-(with CARDINAL 90-degree rotation), and manual integer tile offsets.
+bmesh seam-aware island detection plus a pure-Python rigid layout solver
+(one global uniform scale, LPT-balanced tile assignment, greedy
+bottom-left placement with optional 90-degree rotation).
 
 No external engines, binaries or third-party libraries are used.
 """
@@ -12,7 +13,7 @@ No external engines, binaries or third-party libraries are used.
 bl_info = {
     "name": "Native UDIM Packer",
     "author": "Blender community",
-    "version": (0, 1, 4),
+    "version": (0, 1, 5),
     "blender": (5, 2, 0),
     "location": "UV Editor > Sidebar (N) > UDIM tab",
     "description": (

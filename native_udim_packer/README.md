@@ -8,8 +8,10 @@ operators. No external engines, binaries or third-party libraries.
 ## Features
 
 - **UDIM grid layout** — choose the tile count along U and V (1×1, 2×2, 4×1,
-  3×2, … up to 10×32). Islands are balanced across the tiles by area, so no
-  tile is overloaded while others stay empty.
+  3×2, … up to 10×32). Islands are balanced across the tiles by area (LPT
+  scheduling), so no tile is overloaded while others stay empty. The layout
+  solver derives one global scale that fills the used tiles as densely as
+  possible — islands come out as large as the grid allows, not spread thin.
 - **Standard UDIM numbering** — tile (0,0) is UDIM **1001**, tile (1,0) is
   **1002**, …, tile (9,0) is **1010**; each higher row adds 10: row 2 starts
   at **1011**, row 3 at **1021**. X is capped at 10 because a UDIM row is 10
@@ -18,21 +20,26 @@ operators. No external engines, binaries or third-party libraries.
 - **Islands stay intact** — the packer only moves, scales and rotates your
   existing UV islands; it never re-unwraps, cuts new seams or splits an
   island. A multi-face island always ends up whole inside a single tile.
-- **Normalize scale (optional)** — when enabled, every island is pre-scaled so
-  that texel density (UV area per unit of 3D surface area) is equal across all
-  islands; tiles then fill evenly. When disabled, the original relative island
-  scales are preserved as much as possible (islands that still do not fit a
-  tile are shrunk by the native packer).
-- **90° rotation (optional)** — uses the native packer's `CARDINAL` rotation
-  to improve tile fill. A built-in manual shelf-packer (with its own 90°
-  rotation) is used as a fallback only if the native operator cannot run.
+- **Normalize scale (optional)** — when enabled, every island ends up with the
+  same texel density (UV area per unit of 3D surface area), across all packed
+  objects: shells stay proportional to their real-world size, exactly like
+  Blender's built-in *Average Islands Scale*. When disabled, the original
+  relative island scales are preserved **exactly** — the packer applies one
+  single uniform factor to every island, so any scale equalization you did
+  beforehand (built-in or otherwise) is never broken. If the total content
+  exceeds the grid's capacity everything shrinks uniformly and proportions
+  stay intact.
+- **90° rotation (optional)** — islands may be rotated in 90° steps to fill
+  tiles better; each island keeps a single rigid transform (scale + optional
+  rotation + translation), so shapes are never distorted or stretched.
 - **Multi-object** — pack several selected mesh objects into the same grid in
   one click. All objects share one texture set: their islands are balanced
   across the whole grid together and **never overlap, even between different
   objects** (each object keeps its own UV map).
-- **Native building blocks only** — `bmesh` seam-aware island detection,
-  `bpy.ops.uv.pack_islands` as the packing engine, and manual integer tile
-  offsets. Pinned UVs are respected by the native packer.
+- **Native building blocks only** — `bmesh` seam-aware island detection plus a
+  pure-Python layout solver (LPT-balanced tile assignment, greedy bottom-left
+  placement, one closed-form global scale). No external engines, no subprocess
+  calls, fully deterministic: the same input always produces the same layout.
 - **Undoable** — the operator is registered with `UNDO` and pushes a labeled
   undo step ("Native UDIM: Pack to Grid").
 
@@ -45,7 +52,7 @@ operators. No external engines, binaries or third-party libraries.
 
 1. In Blender open **Edit → Preferences → Add-ons** (or *Extensions* in the
    new-style UI).
-2. Click **Install from Disk…** and select `native_udim_packer-0.1.4.zip`
+2. Click **Install from Disk…** and select `native_udim_packer-0.1.5.zip`
    (or unzip it and point the installer at the `native_udim_packer` folder).
 3. Enable **Native UDIM Packer**.
 
@@ -58,7 +65,7 @@ Preferences.
 > installing. Two ways to verify which build is actually running: the panel
 > shows a `version x.y.z` stamp at the top of the UDIM tab, and the addon
 > prints `Native UDIM Packer v<version> registered` to the console on
-> startup (this release: **0.1.4**).
+> startup (this release: **0.1.5**).
 
 ## Usage
 
@@ -77,8 +84,8 @@ Preferences.
    | Option            | Meaning                                                                 |
    |-------------------|-------------------------------------------------------------------------|
    | **UDIM Grid X/Y** | Tile count along U / V. The panel shows the total tile count and UDIM range. |
-   | **Normalize Scale** | Equalize texel density across islands before packing.                  |
-   | **Allow 90° Rotation** | Let the packer rotate islands by 90° (CARDINAL) to fill tiles better. |
+   | **Normalize Scale** | Make every shell proportional to its 3D size — uniform texel density across all packed objects, like *Average Islands Scale*.                  |
+   | **Allow 90° Rotation** | Let the packer rotate islands in 90° steps to fill tiles better. |
    | **Margin**        | Gap between islands and tile edges, as a fraction of one tile (0.01 = 1%). |
    | **Selected Objects** | Pack all selected meshes; off = active object only.                   |
 
@@ -102,37 +109,38 @@ three tiles (UDIMs 1001, 1002, 1003) set X = 3, Y = 1; for a vertical stack
    opposite ends of a shared edge) is what keeps multi-face islands intact —
    e.g. Blender's built-in monkey mesh correctly resolves to its 5 real UV
    islands instead of one island per face.
-2. **Optional normalization** — each island is scaled about its centroid by
-   `sqrt( (ΣUV / Σ3D) · 3Dᵢ / UVᵢ )`, which equalizes texel density while
-   preserving the total UV footprint.
-3. **Tile balancing** — *all* target objects' islands are pooled and sorted
-   by area, then assigned largest-first to the currently emptiest tile (LPT
-   scheduling), spreading the load evenly across the whole shared grid.
-4. **Per-tile native packing** — for each non-empty tile owned by a single
-   object, only that tile's faces are selected, translated so their
-   bounding-box minimum sits at the origin, and packed with
-   `bpy.ops.uv.pack_islands(udim_source='CLOSEST_UDIM', rotate=…,
-   rotate_method='CARDINAL', scale=True, margin_method='FRACTION', …)`.
-5. **Measured integer re-offset** — the addon measures where the native
-   packer actually placed the selection and shifts it by the whole-tile delta
-   to the assigned tile. The result is correct regardless of which UDIM tile
-   the editor context would have targeted, and every island ends up strictly
-   inside `[tu, tu+1] × [tv, tv+1]`.
-6. **Shared tiles** — when a tile contains islands from several objects, the
-   native operator (which only sees one object) cannot coordinate them, so the
-   addon lays out the whole combined set with its built-in shelf packer: one
-   shared layout per tile guarantees that no island of one object overlaps an
-   island of another.
-7. **Fallback** — if the native operator fails for a tile, the same pure-Python
-   shelf packer places that tile's islands directly into its assigned tile
-   (with 90° rotation when enabled, and shrink-to-fit when the islands do not
-   fit). The fallback never overlaps other tiles' content.
-8. **Density restoration** — with *Normalize Scale* on, each single-object
-   tile is measured afterwards: `uv.pack_islands(scale=True)` scales small
-   selections *up* to fill the tile, which would leave every tile at a
-   different texel density. The addon therefore shrinks each over-dense tile's
-   content uniformly (about the tile center) back to the equalized density.
-   Tiles are only ever shrunk, never enlarged, so containment is preserved.
+2. **Optional normalization** — with *Normalize Scale* on, each island gets an
+   equalizing factor `sqrt( (ΣUV / Σ3D) · 3Dᵢ / UVᵢ )`, which makes texel
+   density identical for every island while preserving the total UV footprint.
+   The factors are only *computed* here — nothing is applied yet, so they can
+   never be disturbed by a later rescale.
+3. **Tile balancing** — *all* target objects' islands are pooled and assigned
+   to tiles with LPT scheduling (largest-first into the currently emptiest
+   tile). Three deterministic orderings (area, longest side, perimeter) are
+   tried and the assignment with the best balance is kept.
+4. **Global rigid layout** — each tile's islands are packed at reference scale
+   with a greedy bottom-left placement (90° rotation candidates when enabled),
+   growing a bounding square per tile until everything fits. One uniform scale
+   `S*` then closes the whole grid: every island receives exactly one rigid
+   transform — scale `normᵢ · S*`, optional 90° rotation, translation into its
+   tile's `[u+margin, …] × [v+margin, …]` interior. Because there is a single
+   global factor, relative island sizes are preserved exactly (normalize off)
+   or made proportional to real-world size (normalize on), and used tiles come
+   out as full as this heuristic family allows. If the content exceeds grid
+   capacity, `S* < 1` shrinks everything uniformly — proportions intact.
+5. **Isolated writeback** — each object is edited in its own edit session: its
+   live islands are re-detected and matched to the plan (island fingerprint =
+   face count + 3D/UV area + UV bbox size), then moved/scaled/rotated into
+   place with bmesh. Objects that cannot be matched or written are left
+   untouched and reported in the error list; nothing is ever partially packed.
+6. **Verification** — after writeback, every island's bounds are re-measured:
+   each must sit strictly inside its assigned unit tile, and no two islands
+   may overlap (shape-level triangle test). The operator reports the result.
+
+The design follows UVPackmaster's default strategy — a single global uniform
+scale (`MAX_SCALE`) that maximizes island size within the target box, with
+simultaneous multi-tile balancing — reimplemented deterministically in pure
+Python so it runs inside Blender without any external engine.
 
 ## Notes & limitations
 
@@ -152,17 +160,22 @@ three tiles (UDIMs 1001, 1002, 1003) set X = 3, Y = 1; for a vertical stack
   bpy.ops.native_udim.pack_to_grid()
   ```
 
-- Each object is packed in its own isolated edit session (so the native
-  packer never sees another object's UVs); with several objects selected,
-  undoing the operation takes one `Ctrl+Z` per object. The original object
-  selection is restored afterwards, and when packing started from (multi-)
-  edit mode you are returned to it with the same objects being edited.
-  Pinned UVs are passed through to the native packer and behave as they do
-  with the built-in *Pack Islands* operator.
+- Each object is packed in its own isolated edit session; with several objects
+  selected, undoing the operation takes one `Ctrl+Z` per object. The original
+  object selection is restored afterwards, and when packing started from
+  (multi-)edit mode you are returned to it with the same objects being edited.
+- **Pinned UVs are not respected** — the layout solver treats every island as
+  a rigid body, so pinned islands move with their island like all others.
+  This differs from the built-in *Pack Islands* operator on purpose: honoring
+  pins would break the global scale guarantee.
 - The grid is a layout for your UDIM texture set: paint/assign images with
   matching UDIM tiles (`1001 + u + v·10`) to see the result.
-- Very large grids (many small islands per tile) are limited only by the
-  native packer's performance.
+- **Capacity** — packing cannot create area: if the islands' total footprint
+  (after normalization, when enabled) exceeds what the grid can hold, every
+  island is shrunk uniformly by the same factor. Increase the grid or reduce
+  normalize's effect on oversized shells if you need larger UVs.
+- The pure-Python solver is deterministic and fast; thousands of islands pack
+  in well under a second on typical hardware.
 
 ## License
 
