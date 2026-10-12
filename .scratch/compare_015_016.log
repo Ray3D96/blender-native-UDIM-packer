@@ -1,0 +1,30 @@
+===== ENGINE 0.1.5 =====
+00:00.208  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+Native UDIM Packer v0.1.5 registered
+engine at /mnt/fusion/ai-projects/blender-uv-packer/.scratch/v015 version (0, 1, 5)
+scene: 35 target objects
+S* = 1.0280888326384676  tiles_used_total = [(0, 0), (1, 0), (2, 0)]
+islands_post=268 total_final_area=1.3340615193659349
+tile (0, 0): area_fill=0.46771088694355195 content_bbox=1.0x0.9958721995353699
+tile (1, 0): area_fill=0.45140633032246047 content_bbox=0.8713235855102539x0.868557870388031
+tile (2, 0): area_fill=0.4149443020999224 content_bbox=0.8450090885162354x0.8446899652481079
+COMPARE DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+===== ENGINE 0.1.6 =====
+00:00.203  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+Native UDIM Packer v0.1.6 registered
+engine at /mnt/fusion/ai-projects/blender-uv-packer version (0, 1, 6)
+scene: 35 target objects
+S* = 1.0280888326384676  tiles_used_total = [(0, 0), (1, 0), (2, 0)]
+islands_post=268 total_final_area=1.3340614833837976
+tile (0, 0): area_fill=0.3402785570568755 content_bbox=0.9448833465576172x0.5978004932403564
+tile (1, 0): area_fill=0.5786988617693916 content_bbox=0.933982253074646x0.7822869420051575
+tile (2, 0): area_fill=0.41508406455753105 content_bbox=1.0x0.44077998399734497
+COMPARE DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+

@@ -13,7 +13,7 @@ No external engines, binaries or third-party libraries are used.
 bl_info = {
     "name": "Native UDIM Packer",
     "author": "Blender community",
-    "version": (0, 1, 5),
+    "version": (0, 1, 6),
     "blender": (5, 2, 0),
     "location": "UV Editor > Sidebar (N) > UDIM tab",
     "description": (

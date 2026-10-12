@@ -1,0 +1,151 @@
+00:00.202  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+Native UDIM Packer v0.1.6 registered
+PROBE engine 0.1.6
+scene: 35 objects, 35 with UV
+
+--- per-island outline audit (pre-pack) ---
+  Axel: faces=92 bbox=0.0018 poly=0.0008 ratio=0.423 outers=1 holes=4 verts=48
+  Axel: faces=128 bbox=0.0046 poly=0.0018 ratio=0.388 outers=1 holes=1 verts=64
+  Axel: faces=256 bbox=0.0046 poly=0.0019 ratio=0.401 outers=1 holes=9 verts=256
+  Axel: faces=92 bbox=0.0018 poly=0.0008 ratio=0.423 outers=1 holes=4 verts=48
+  Axel: faces=92 bbox=0.0018 poly=0.0008 ratio=0.423 outers=1 holes=3 verts=42
+  Axel: faces=92 bbox=0.0018 poly=0.0008 ratio=0.423 outers=1 holes=3 verts=42
+  Axel: faces=92 bbox=0.0018 poly=0.0008 ratio=0.423 outers=1 holes=3 verts=42
+  Axel: faces=92 bbox=0.0018 poly=0.0008 ratio=0.423 outers=1 holes=4 verts=48
+  Axel: faces=92 bbox=0.0018 poly=0.0008 ratio=0.423 outers=1 holes=2 verts=36
+  Axel: faces=92 bbox=0.0018 poly=0.0008 ratio=0.423 outers=1 holes=4 verts=48
+  Axel: faces=96 bbox=0.0007 poly=0.0005 ratio=0.736 outers=1 holes=1 verts=64
+  Base: faces=120 bbox=0.0066 poly=0.0045 ratio=0.689 outers=1 holes=0 verts=52
+  Base: faces=338 bbox=0.0461 poly=0.0403 ratio=0.874 outers=1 holes=2 verts=90
+  Base: faces=144 bbox=0.0356 poly=0.0256 ratio=0.720 outers=1 holes=0 verts=78
+  Base: faces=54 bbox=0.0052 poly=0.0033 ratio=0.628 outers=1 holes=3 verts=34
+  Base: faces=120 bbox=0.0065 poly=0.0045 ratio=0.690 outers=1 holes=0 verts=52
+  BladeAxel: faces=1808 bbox=0.0179 poly=0.0128 ratio=0.713 outers=19 holes=2 verts=414
+  BladeAxel: faces=120 bbox=0.0004 poly=0.0001 ratio=0.175 outers=1 holes=1 verts=80
+  BladeAxel: faces=262 bbox=0.0004 poly=0.0003 ratio=0.762 outers=1 holes=4 verts=70
+  BladeAxel: faces=262 bbox=0.0004 poly=0.0003 ratio=0.763 outers=1 holes=4 verts=70
+  BladeAxel: faces=262 bbox=0.0004 poly=0.0003 ratio=0.761 outers=1 holes=3 verts=66
+  BladeAxel: faces=262 bbox=0.0004 poly=0.0003 ratio=0.769 outers=1 holes=4 verts=70
+  BladeAxel: faces=262 bbox=0.0004 poly=0.0003 ratio=0.766 outers=1 holes=4 verts=70
+  BladeAxel: faces=262 bbox=0.0004 poly=0.0003 ratio=0.763 outers=1 holes=3 verts=66
+  BladeAxel.001: faces=1808 bbox=0.0179 poly=0.0128 ratio=0.713 outers=19 holes=2 verts=414
+  BladeAxel.001: faces=120 bbox=0.0004 poly=0.0001 ratio=0.175 outers=1 holes=1 verts=80
+  BladeAxel.001: faces=262 bbox=0.0004 poly=0.0003 ratio=0.762 outers=1 holes=4 verts=70
+  BladeAxel.001: faces=262 bbox=0.0004 poly=0.0003 ratio=0.763 outers=1 holes=4 verts=70
+  BladeAxel.001: faces=262 bbox=0.0004 poly=0.0003 ratio=0.761 outers=1 holes=3 verts=66
+  BladeAxel.001: faces=262 bbox=0.0004 poly=0.0003 ratio=0.769 outers=1 holes=4 verts=70
+  BladeAxel.001: faces=262 bbox=0.0004 poly=0.0003 ratio=0.766 outers=1 holes=4 verts=70
+  BladeAxel.001: faces=262 bbox=0.0004 poly=0.0003 ratio=0.763 outers=1 holes=3 verts=66
+  BladesA: faces=151 bbox=0.0008 poly=0.0004 ratio=0.451 outers=1 holes=0 verts=46
+  BladesA: faces=197 bbox=0.0008 poly=0.0004 ratio=0.474 outers=2 holes=0 verts=50
+  BladesA: faces=151 bbox=0.0008 poly=0.0004 ratio=0.451 outers=1 holes=0 verts=46
+  BladesA: faces=197 bbox=0.0008 poly=0.0004 ratio=0.474 outers=2 holes=0 verts=50
+  BladesA.001: faces=151 bbox=0.0008 poly=0.0004 ratio=0.451 outers=1 holes=0 verts=46
+  BladesA.001: faces=197 bbox=0.0008 poly=0.0004 ratio=0.474 outers=2 holes=0 verts=50
+  BladesA.001: faces=151 bbox=0.0008 poly=0.0004 ratio=0.451 outers=1 holes=0 verts=46
+  BladesA.001: faces=197 bbox=0.0008 poly=0.0004 ratio=0.474 outers=2 holes=0 verts=50
+  BladesB: faces=151 bbox=0.0008 poly=0.0004 ratio=0.451 outers=1 holes=0 verts=46
+  BladesB: faces=197 bbox=0.0008 poly=0.0004 ratio=0.474 outers=2 holes=0 verts=50
+  BladesB: faces=151 bbox=0.0008 poly=0.0004 ratio=0.451 outers=1 holes=0 verts=46
+  BladesB: faces=197 bbox=0.0008 poly=0.0004 ratio=0.474 outers=2 holes=0 verts=50
+  BladesB.001: faces=151 bbox=0.0008 poly=0.0004 ratio=0.451 outers=1 holes=0 verts=46
+  BladesB.001: faces=197 bbox=0.0008 poly=0.0004 ratio=0.474 outers=2 holes=0 verts=50
+  BladesB.001: faces=151 bbox=0.0008 poly=0.0004 ratio=0.451 outers=1 holes=0 verts=46
+  BladesB.001: faces=197 bbox=0.0008 poly=0.0004 ratio=0.474 outers=2 holes=0 verts=50
+  BladesC: faces=151 bbox=0.0008 poly=0.0004 ratio=0.451 outers=1 holes=0 verts=46
+  BladesC: faces=197 bbox=0.0008 poly=0.0004 ratio=0.474 outers=2 holes=0 verts=50
+  BladesC: faces=151 bbox=0.0008 poly=0.0004 ratio=0.451 outers=1 holes=0 verts=46
+  BladesC: faces=197 bbox=0.0008 poly=0.0004 ratio=0.474 outers=2 holes=0 verts=50
+  BladesC.001: faces=151 bbox=0.0008 poly=0.0004 ratio=0.451 outers=1 holes=0 verts=46
+  BladesC.001: faces=197 bbox=0.0008 poly=0.0004 ratio=0.474 outers=2 holes=0 verts=50
+  BladesC.001: faces=151 bbox=0.0008 poly=0.0004 ratio=0.451 outers=1 holes=0 verts=46
+  BladesC.001: faces=197 bbox=0.0008 poly=0.0004 ratio=0.474 outers=2 holes=0 verts=50
+  ContainerHandle: faces=10 bbox=0.0000 poly=0.0000 ratio=0.696 outers=1 holes=0 verts=22
+  ContainerHandlePlastic: faces=164 bbox=0.0007 poly=0.0006 ratio=0.857 outers=2 holes=1 verts=54
+  ContainerHandlePlastic: faces=790 bbox=0.0127 poly=0.0110 ratio=0.867 outers=12 holes=3 verts=100
+  ContainerInnerBase: faces=312 bbox=0.0246 poly=0.0238 ratio=0.965 outers=6 holes=2 verts=146
+  ContainerInnerBase: faces=54 bbox=0.0011 poly=0.0006 ratio=0.523 outers=1 holes=4 verts=38
+  ContainerInnerBase: faces=54 bbox=0.0011 poly=0.0006 ratio=0.523 outers=1 holes=4 verts=38
+  ContainerInnerBase: faces=54 bbox=0.0011 poly=0.0006 ratio=0.523 outers=1 holes=4 verts=38
+  ContainerInnerBase: faces=54 bbox=0.0011 poly=0.0006 ratio=0.523 outers=1 holes=4 verts=38
+  ContainerLegs: faces=126 bbox=0.0075 poly=0.0053 ratio=0.708 outers=12 holes=1 verts=58
+  ContainerLegs: faces=126 bbox=0.0084 poly=0.0061 ratio=0.732 outers=3 holes=0 verts=40
+  ContainerLegs: faces=126 bbox=0.0075 poly=0.0053 ratio=0.716 outers=13 holes=0 verts=56
+  ContainerLegs: faces=126 bbox=0.0084 poly=0.0061 ratio=0.732 outers=3 holes=0 verts=12
+  ContainerMain: faces=76 bbox=0.0298 poly=0.0013 ratio=0.044 outers=1 holes=1 verts=158
+  ContainerMain: faces=368 bbox=0.0200 poly=0.0189 ratio=0.946 outers=1 holes=1 verts=110
+  ContainerMain: faces=408 bbox=0.0205 poly=0.0195 ratio=0.949 outers=1 holes=1 verts=104
+  ContainerMain: faces=90 bbox=0.0350 poly=0.0014 ratio=0.041 outers=1 holes=1 verts=180
+  ContainerMain: faces=140 bbox=0.0023 poly=0.0012 ratio=0.514 outers=1 holes=1 verts=56
+  DrainLid: faces=361 bbox=0.0045 poly=0.0033 ratio=0.723 outers=1 holes=3 verts=62
+  DrainLid: faces=427 bbox=0.0054 poly=0.0041 ratio=0.770 outers=1 holes=4 verts=78
+  DrainLid: faces=134 bbox=0.0044 poly=0.0004 ratio=0.084 outers=1 holes=1 verts=98
+  DrainLid: faces=124 bbox=0.0040 poly=0.0004 ratio=0.113 outers=1 holes=1 verts=88
+  Handle: faces=266 bbox=0.0181 poly=0.0044 ratio=0.245 outers=1 holes=0 verts=104
+  Handle: faces=204 bbox=0.0173 poly=0.0038 ratio=0.221 outers=1 holes=0 verts=124
+  Handle: faces=19 bbox=0.0002 poly=0.0001 ratio=0.660 outers=1 holes=0 verts=20
+  Handle: faces=178 bbox=0.0095 poly=0.0056 ratio=0.587 outers=1 holes=0 verts=134
+  Handle: faces=86 bbox=0.0006 poly=0.0003 ratio=0.555 outers=1 holes=0 verts=36
+  Handle: faces=86 bbox=0.0006 poly=0.0003 ratio=0.553 outers=1 holes=0 verts=36
+  Handle: faces=52 bbox=0.0004 poly=0.0003 ratio=0.716 outers=1 holes=0 verts=24
+  Handle: faces=52 bbox=0.0004 poly=0.0003 ratio=0.702 outers=1 holes=0 verts=24
+  Handle: faces=19 bbox=0.0002 poly=0.0001 ratio=0.660 outers=1 holes=0 verts=20
+  Lid: faces=489 bbox=0.0121 poly=0.0086 ratio=0.713 outers=1 holes=0 verts=202
+  Lid: faces=534 bbox=0.0108 poly=0.0081 ratio=0.749 outers=1 holes=4 verts=134
+  Lid: faces=385 bbox=0.0118 poly=0.0057 ratio=0.481 outers=1 holes=0 verts=172
+  Lid: faces=122 bbox=0.0071 poly=0.0009 ratio=0.122 outers=1 holes=0 verts=98
+  Lid: faces=263 bbox=0.0217 poly=0.0046 ratio=0.211 outers=1 holes=0 verts=112
+  Lid: faces=336 bbox=0.0082 poly=0.0055 ratio=0.667 outers=1 holes=0 verts=146
+  Lid: faces=614 bbox=0.0483 poly=0.0212 ratio=0.440 outers=1 holes=1 verts=194
+  Lid: faces=460 bbox=0.0190 poly=0.0145 ratio=0.764 outers=1 holes=4 verts=94
+  Lid: faces=179 bbox=0.0024 poly=0.0009 ratio=0.383 outers=1 holes=0 verts=54
+  Mount: faces=68 bbox=0.0010 poly=0.0006 ratio=0.570 outers=1 holes=0 verts=56
+  Mount: faces=218 bbox=0.0034 poly=0.0021 ratio=0.627 outers=1 holes=1 verts=174
+  Mount: faces=68 bbox=0.0010 poly=0.0006 ratio=0.570 outers=1 holes=0 verts=56
+  Mount: faces=68 bbox=0.0010 poly=0.0006 ratio=0.569 outers=1 holes=0 verts=56
+  Mount: faces=480 bbox=0.0074 poly=0.0055 ratio=0.746 outers=2 holes=0 verts=168
+  Mount: faces=68 bbox=0.0010 poly=0.0006 ratio=0.570 outers=1 holes=0 verts=56
+  Plug: faces=288 bbox=0.0011 poly=0.0008 ratio=0.778 outers=1 holes=3 verts=62
+  Plug: faces=280 bbox=0.0008 poly=0.0008 ratio=0.960 outers=1 holes=4 verts=68
+  Plug: faces=120 bbox=0.0005 poly=0.0001 ratio=0.276 outers=1 holes=1 verts=88
+  Plug: faces=120 bbox=0.0003 poly=0.0002 ratio=0.499 outers=1 holes=1 verts=88
+  PlugEnd: faces=512 bbox=0.0006 poly=0.0006 ratio=0.998 outers=7 holes=1 verts=276
+  PlugMetal: faces=190 bbox=0.0002 poly=0.0001 ratio=0.897 outers=1 holes=1 verts=72
+  PlugMetal: faces=192 bbox=0.0002 poly=0.0001 ratio=0.736 outers=1 holes=1 verts=74
+  PlugMetal: faces=192 bbox=0.0002 poly=0.0001 ratio=0.736 outers=1 holes=1 verts=74
+  PlugMetal: faces=190 bbox=0.0002 poly=0.0001 ratio=0.897 outers=1 holes=1 verts=72
+  ReleaseButton: faces=101 bbox=0.0012 poly=0.0011 ratio=0.909 outers=1 holes=2 verts=48
+  RubberPads: faces=166 bbox=0.0016 poly=0.0014 ratio=0.894 outers=5 holes=6 verts=54
+  RubberPads: faces=202 bbox=0.0029 poly=0.0028 ratio=0.948 outers=8 holes=6 verts=66
+  Spinner: faces=92 bbox=0.0015 poly=0.0008 ratio=0.519 outers=1 holes=4 verts=48
+  Spinner: faces=481 bbox=0.0084 poly=0.0051 ratio=0.613 outers=1 holes=8 verts=224
+  Spinner: faces=92 bbox=0.0015 poly=0.0008 ratio=0.519 outers=1 holes=4 verts=48
+  Spinner: faces=92 bbox=0.0015 poly=0.0008 ratio=0.519 outers=1 holes=3 verts=42
+  Spinner: faces=92 bbox=0.0015 poly=0.0008 ratio=0.518 outers=1 holes=3 verts=42
+  Spinner: faces=92 bbox=0.0015 poly=0.0008 ratio=0.519 outers=1 holes=3 verts=42
+  Spinner: faces=92 bbox=0.0015 poly=0.0008 ratio=0.519 outers=1 holes=4 verts=48
+  Spinner: faces=92 bbox=0.0015 poly=0.0008 ratio=0.519 outers=1 holes=2 verts=36
+  Spinner: faces=92 bbox=0.0015 poly=0.0008 ratio=0.519 outers=1 holes=4 verts=48
+  Spinner: faces=96 bbox=0.0019 poly=0.0005 ratio=0.265 outers=1 holes=1 verts=64
+  Spinner: faces=64 bbox=0.0009 poly=0.0002 ratio=0.242 outers=1 holes=1 verts=66
+  Spinner: faces=128 bbox=0.0001 poly=0.0000 ratio=0.371 outers=1 holes=1 verts=72
+  Spinner: faces=144 bbox=0.0000 poly=0.0000 ratio=0.699 outers=1 holes=0 verts=40
+  SpinStablizer: faces=260 bbox=0.0014 poly=0.0011 ratio=0.788 outers=1 holes=5 verts=80
+  WireSocket: faces=92 bbox=0.0003 poly=0.0002 ratio=0.623 outers=1 holes=0 verts=44
+  WireSocket: faces=62 bbox=0.0004 poly=0.0003 ratio=0.705 outers=1 holes=0 verts=50
+  WireSocket: faces=92 bbox=0.0003 poly=0.0002 ratio=0.639 outers=1 holes=0 verts=42
+
+TOTAL islands=268  polygon_area=1.2622 bbox_area=1.5822  bbox_waste=0.202 (i.e. 0.3201 uv units^2 wasted by rectangles)
+ratio distribution: min=0.041 p25=0.569 median=0.789 max=1.000
+islands with holes: 75   max outline verts: 414
+
+--- current engine on user settings: 3x1, normalize ON, margin 0.0 ---
+S* = 1.0280888326384676 tiles_used_total = [(0, 0), (1, 0), (2, 0)]
+tile (0, 0): area_fill=0.340 content_bbox=0.945x0.598 aspect(w/h)=1.58 width_used=0.945 height_used=0.598
+tile (1, 0): area_fill=0.579 content_bbox=0.934x0.782 aspect(w/h)=1.19 width_used=0.934 height_used=0.782
+tile (2, 0): area_fill=0.415 content_bbox=1.000x0.441 aspect(w/h)=2.27 width_used=1.000 height_used=0.441
+PROBE DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+

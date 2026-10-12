@@ -31,7 +31,12 @@ def check(name, cond, detail=""):
 
 
 def audit(S, placements, items_by_index, grid_x, grid_y, margin):
-    """Containment + gap + exactly-once. Returns (ok, problems)."""
+    """Containment + gap + exactly-once. Returns (ok, problems).
+
+    Bbox overlap is only a hard error for rect-rect pairs: two concave
+    shapes may legitimately interlock inside overlapping bboxes; those are
+    verified at polygon level by audit_shapes().
+    """
     probs = []
     seen = set()
     per_tile: dict[tuple[int, int], list] = {}
@@ -56,7 +61,7 @@ def audit(S, placements, items_by_index, grid_x, grid_y, margin):
             probs.append(f"item {p.item} out of tile bounds "
                          f"[{x0:.4f},{y0:.4f},{x1:.4f},{y1:.4f}]")
         per_tile.setdefault((p.tile_u, p.tile_v), []).append(
-            (p.item, x0, y0, x1, y1))
+            (p.item, bool(it.outers), x0, y0, x1, y1))
     missing = set(items_by_index) - seen
     if missing:
         probs.append(f"unplaced items: {sorted(missing)[:5]}...")
@@ -64,8 +69,10 @@ def audit(S, placements, items_by_index, grid_x, grid_y, margin):
         for i in range(len(rects)):
             for j in range(i + 1, len(rects)):
                 a, b = rects[i], rects[j]
-                ox = min(a[3], b[3]) - max(a[1], b[1])
-                oy = min(a[4], b[4]) - max(a[2], b[2])
+                if a[1] or b[1]:
+                    continue  # shaped: polygon-level check elsewhere
+                ox = min(a[4], b[4]) - max(a[2], b[2])
+                oy = min(a[5], b[5]) - max(a[3], b[3])
                 if ox > 1e-9 and oy > 1e-9:
                     probs.append(
                         f"tile {t}: overlap items {a[0]} & {b[0]} "
@@ -173,6 +180,127 @@ S8, pl8 = solve(t1_items, 2, 2, 0.0, True)
 ok8, probs8 = audit(S8, pl8, {t.index: t for t in t1_items}, 2, 2, 0.0)
 check("margin=0 valid", ok8 and S8 > 0, "; ".join(probs8[:3]))
 
+# --- shape-aware: hole nesting --------------------------------------------------
+sq_outer = ((0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0))
+hole4 = ((0.3, 0.3), (0.7, 0.3), (0.7, 0.7), (0.3, 0.7))
+A_hole = Item(0, 1.0, 1.0, outers=(sq_outer,), holes=(hole4,))
+B_small = Item(1, 0.38, 0.38)
+S9, pl9 = solve([A_hole, B_small], 1, 1, 0.0, True)
+check("hole nesting: S stays W/E=1.0 (B inside hole)",
+      abs(S9 - 1.0) < 1e-9, f"S={S9:.6f}")
+pb9 = [p for p in pl9 if p.item == 1][0]
+check("hole nesting: B centred on the hole",
+      abs(pb9.x0 + 0.19 - 0.5) < 1e-9 and abs(pb9.y0 + 0.19 - 0.5) < 1e-9,
+      f"x0={pb9.x0:.4f} y0={pb9.y0:.4f}")
+
+
+# --- shape-aware: concave interlock beats bbox packing ---------------------------
+L_outer = ((0.0, 0.0), (1.0, 0.0), (1.0, 0.5), (0.5, 0.5), (0.5, 1.0), (0.0, 1.0))
+A_L = Item(0, 1.0, 1.0, outers=(L_outer,))
+B_notch = Item(1, 0.48, 0.48)
+S10, pl10 = solve([A_L, B_notch], 1, 1, 0.005, True)
+A_Lr = Item(0, 1.0, 1.0)
+B_notchr = Item(1, 0.48, 0.48)
+S10r, _ = solve([A_Lr, B_notchr], 1, 1, 0.005, True)
+check("concave interlock: shaped S > bbox S", S10 > S10r + 1e-9,
+      f"S_shaped={S10:.4f} S_bbox={S10r:.4f}")
+pb10 = [p for p in pl10 if p.item == 1][0]
+check("concave interlock: B sits in the notch",
+      pb10.x0 >= 0.5 - EPS and pb10.y0 >= 0.5 - EPS,
+      f"x0={pb10.x0:.4f} y0={pb10.y0:.4f}")
+
+
+# --- shape-aware: rotation chirality matches writeback (CCW) ---------------------
+L2 = ((0.0, 0.0), (2.0, 0.0), (2.0, 1.0), (1.0, 1.0), (1.0, 0.5), (0.0, 0.5))
+it_chir = Item(0, 2.0, 1.0, outers=(L2,))
+sh_r = layout._build_shape(it_chir, True)
+exp_loop = tuple((1.0 - y, x) for (x, y) in L2)
+check("rotation: footprint swapped", sh_r.w == 1.0 and sh_r.h == 2.0,
+      f"w={sh_r.w} h={sh_r.h}")
+check("rotation: CCW mapping (x,y)->(h-y,x)",
+      set(sh_r.outers[0]) == set(exp_loop),
+      f"got={sh_r.outers[0]}")
+
+
+# --- shape-aware audit: reconstruct final polygons, test no overlap --------------
+def audit_shapes(S, placements, items_by_index, grid_x, grid_y, margin):
+    probs = []
+    polys = []
+    for p in placements:
+        it = items_by_index[p.item]
+        if not it.outers:
+            continue
+        sh = layout._build_shape(it, p.rotated)
+        tx0 = p.tile_u + margin
+        ty0 = p.tile_v + margin
+        tx1 = p.tile_u + 1.0 - margin
+        ty1 = p.tile_v + 1.0 - margin
+
+        def xform(lp):
+            return tuple((tx0 + (p.x0 + vx) * S, ty0 + (p.y0 + vy) * S)
+                         for (vx, vy) in lp)
+
+        outers = [xform(lp) for lp in sh.outers]
+        holes = [xform(lp) for lp in sh.holes]
+        for lp in outers + holes:
+            for (x, y) in lp:
+                if not (tx0 - EPS <= x <= tx1 + EPS
+                        and ty0 - EPS <= y <= ty1 + EPS):
+                    probs.append(f"item {p.item} vertex out of tile "
+                                 f"({x:.4f},{y:.4f})")
+        polys.append((p.item, layout._Shape(p.w, p.h,
+                                            tuple(outers), tuple(holes))))
+    for i in range(len(polys)):
+        for j in range(i + 1, len(polys)):
+            a, b = polys[i], polys[j]
+            if layout._overlap(a[1], (0.0, 0.0), b[1], (0.0, 0.0)):
+                probs.append(f"shape overlap items {a[0]} & {b[0]}")
+    return (not probs, probs)
+
+
+def make_shape_items(seed, n):
+    rnd = random.Random(seed)
+    items = []
+    for i in range(n):
+        w = rnd.uniform(0.1, 0.5)
+        h = rnd.uniform(0.1, 0.5)
+        kind = rnd.random()
+        if kind < 0.4:  # L-shape (notch cut from top-right)
+            nw = rnd.uniform(0.3, 0.6) * w
+            nh = rnd.uniform(0.3, 0.6) * h
+            loop = ((0.0, 0.0), (w, 0.0), (w, h - nh), (w - nw, h - nh),
+                    (w - nw, h), (0.0, h))
+            items.append(Item(i, w, h, outers=(loop,)))
+        elif kind < 0.7:  # square with a centred hole
+            hw = rnd.uniform(0.25, 0.4) * w
+            hh = rnd.uniform(0.25, 0.4) * h
+            ox = (w - hw) / 2.0
+            oy = (h - hh) / 2.0
+            loop = ((0.0, 0.0), (w, 0.0), (w, h), (0.0, h))
+            hole = ((ox, oy), (ox + hw, oy), (ox + hw, oy + hh), (ox, oy + hh))
+            items.append(Item(i, w, h, outers=(loop,), holes=(hole,)))
+        else:  # plain rectangle
+            items.append(Item(i, w, h))
+    return items
+
+
+shp = make_shape_items(1234, 120)
+run_case("shape scene 120-item 3x1 margin=0", shp, 3, 1, 0.0, True)
+S11b, pl11 = solve(shp, 3, 1, 0.0, True)
+ok11, probs11 = audit_shapes(S11b, pl11, {t.index: t for t in shp}, 3, 1, 0.0)
+check("shape scene: polygon-level no overlap + containment", ok11,
+      "; ".join(probs11[:4]))
+r_c = solve(shp, 3, 1, 0.0, True)
+r_d = solve(shp, 3, 1, 0.0, True)
+check("shape scene: deterministic", r_c == r_d)
+
+# --- rectangle regression: shapeless pack_tile is the classic engine ------------
+rect_items = make_items(99, 60)
+E_a, pl_a = layout.pack_tile(rect_items, True, 0.005)
+E_b, pl_b = layout._pack_tile_rect(rect_items, True, 0.005)
+check("rectangle regression: pack_tile == _pack_tile_rect",
+      E_a == E_b and pl_a == pl_b)
+
 # --- performance ---------------------------------------------------------------
 import time  # noqa: E402
 t0 = time.perf_counter()
@@ -180,6 +308,12 @@ for _ in range(5):
     solve(make_items(7, 1000), 10, 10, 0.005, True)
 dt = (time.perf_counter() - t0) / 5
 check("perf: 1000 items 10x10 < 2s", dt < 2.0, f"{dt*1000:.0f} ms")
+
+t0 = time.perf_counter()
+solve(make_shape_items(77, 100), 10, 10, 0.005, True)
+dt_sh = time.perf_counter() - t0
+check("perf: 100 shaped items 10x10 < 60s", dt_sh < 60.0,
+      f"{dt_sh:.2f} s")
 
 print()
 if FAILS:

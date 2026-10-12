@@ -1,25 +1,33 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 """UDIM grid packing pipeline: one global uniform scale + rigid placement.
 
-Strategy (v2, validated against Blender 5.2):
+Strategy (v3, validated against Blender 5.2):
 
 All objects are treated as one shared texture set.  Their islands are pooled
 and a single layout is solved for the whole pool, so no two islands ever
 overlap - even when they belong to different objects.
 
 1. Detect UV islands with :mod:`native_udim_packer.islands` (seam-aware) on
-   read-only object-mode bmeshes.
+   read-only object-mode bmeshes, and extract each island's outline loops
+   (outer boundary + holes) for shape-aware packing.
 2. With "normalize" enabled, compute each island's equalizing scale
    ``norm_scale = sqrt((total_uv / total_3d) * 3d_area_i / uv_area_i)`` -
    but do NOT pre-apply it; it only feeds the layout reference sizes and
    the final writeback.
 3. Solve a global rigid layout (:mod:`native_udim_packer.layout`): islands
    are assigned to tiles (LPT load balancing, three deterministic orderings
-   tried and the best kept), each tile is greedily packed at reference
-   scale, and one uniform scale ``S*`` is derived so that every tile's
-   content fits its ``[margin, 1-margin]`` interior.  Nothing is rescaled
-   per tile afterwards: every island receives exactly one rigid transform
-   (scale ``norm_scale_i * S*``, optional 90-degree rotation, translation).
+   tried and the best kept), tile extents are evened out by a bounded
+   local search, and each tile is greedily packed at reference scale.
+   Islands with a meaningful outline are placed as their actual polygon
+   (Douglas-Peucker simplified): hole attractors let small islands nest
+   inside holes of larger ones, concave notches can be interlocked, and
+   the margin gap is enforced between offset shapes - so empty space inside
+   an island's bounding box is no longer wasted.  Islands that are tiny or
+   effectively rectangular use the classic rectangle fast path.  One
+   uniform scale ``S*`` is derived so that every tile's content fits its
+   ``[margin, 1-margin]`` interior.  Nothing is rescaled per tile
+   afterwards: every island receives exactly one rigid transform (scale
+   ``norm_scale_i * S*``, optional 90-degree rotation, translation).
 
 Consequences:
 
@@ -47,6 +55,7 @@ from .islands import (
     Island,
     detect_islands,
     island_bounds,
+    island_outline,
     place_island_into,
 )
 from .layout import Item as _LayoutItem
@@ -180,7 +189,10 @@ def _detect_object(ob) -> list[Island] | None:
     """Detect islands on ``ob`` in object mode (read-only bmesh).
 
     Returns the island list, or None when the object has no usable UVs.
-    Islands carry a temporary ``_fingerprint`` used for live matching.
+    Islands carry a temporary ``_fingerprint`` used for live matching and
+    an ``_outline`` ((outers, holes) loops in absolute UV coords) used by
+    the shape-aware layout; both are computed on this same bmesh so they
+    stay consistent with the island's face set.
     """
     me = ob.data
     if not getattr(me, "uv_layers", None) or len(me.uv_layers) == 0:
@@ -194,6 +206,7 @@ def _detect_object(ob) -> list[Island] | None:
         islands = detect_islands(bm, uvl)
         for i in islands:
             i._fingerprint = _island_fingerprint(i)
+            i._outline = island_outline(bm, uvl, i.face_indices)
     finally:
         bm.free()
     return islands or None
@@ -232,6 +245,11 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
         normalize_scales(all_islands)
 
     # --- 3) global rigid layout at reference scale --------------------------
+    # Islands with a meaningful outline become shape items (polygon packing
+    # with holes and concave interlocking); tiny or near-rectangular ones
+    # stay on the fast rectangle path.  Outline loops are re-expressed in
+    # local reference coordinates: bbox minimum at the origin, scaled by the
+    # island's normalization factor.
     items: list[_LayoutItem] = []
     ref_by_index: dict[int, tuple[Island, float]] = {}
     for n, i in enumerate(all_islands):
@@ -239,7 +257,20 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
         s_norm = i.norm_scale if i.norm_scale is not None else 1.0
         w = max((maxx - minx) * s_norm, 1e-6)
         h = max((maxy - miny) * s_norm, 1e-6)
-        items.append(_LayoutItem(n, w, h))
+        outers_t: tuple = ()
+        holes_t: tuple = ()
+        outline = getattr(i, "_outline", None)
+        if outline is not None:
+            o_loops, h_loops = outline
+            nverts = (sum(len(lp) for lp in o_loops)
+                      + sum(len(lp) for lp in h_loops))
+            if o_loops and nverts >= 6 and math.hypot(w, h) >= 0.02:
+                def _local(lp):
+                    return tuple(((x - minx) * s_norm, (y - miny) * s_norm)
+                                 for (x, y) in lp)
+                outers_t = tuple(_local(lp) for lp in o_loops)
+                holes_t = tuple(_local(lp) for lp in h_loops)
+        items.append(_LayoutItem(n, w, h, outers=outers_t, holes=holes_t))
         ref_by_index[n] = (i, s_norm)
 
     S, placements = _layout_solve(items, grid_x, grid_y, margin, rotate_90)

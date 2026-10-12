@@ -149,6 +149,125 @@ def detect_islands(bm, uvl) -> list[Island]:
     return islands
 
 
+def _pip(pt: tuple, poly: tuple) -> bool:
+    """Ray-casting point-in-polygon (pure Python)."""
+    x, y = pt
+    inside = False
+    n = len(poly)
+    j = n - 1
+    for i in range(n):
+        xi, yi = poly[i]
+        xj, yj = poly[j]
+        if ((yi > y) != (yj > y)) and \
+           (x < (xj - xi) * (y - yi) / (yj - yi) + xi):
+            inside = not inside
+        j = i
+    return inside
+
+
+def _shoelace(poly: tuple) -> float:
+    """Signed area of a polygon loop (positive for CCW winding)."""
+    s = 0.0
+    n = len(poly)
+    for i in range(n):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % n]
+        s += x1 * y2 - x2 * y1
+    return s * 0.5
+
+
+def island_outline(bm, uvl, face_indices: set[int]) -> tuple[list[tuple], list[tuple]]:
+    """Extract the real boundary of one island in UV space.
+
+    Returns ``(outers, holes)``: two lists of loops, each loop a tuple of
+    ``(x, y)`` points (absolute UV coordinates).  ``outers`` are the outer
+    boundary loops; ``holes`` are interior voids nested inside an outer.
+
+    Method: an edge instance belongs to the island boundary when no other
+    face instance of the same geometric edge carries matching UVs at both
+    shared corners (the seam-aware rule used by :func:`detect_islands`).
+    Boundary half-edges are walked into closed loops; each loop is then
+    classified outer vs hole by centroid nesting against larger loops.
+
+    The result feeds the shape-aware layout solver, which can pack into
+    concavities and holes instead of treating islands as rectangles.
+    """
+    faces = [f for f in tuple(bm.faces) if f.index in face_indices]
+    groups: dict[frozenset, list[tuple]] = {}
+    for f in faces:
+        ls = tuple(f.loops)
+        n = len(ls)
+        for i in range(n):
+            a = ls[i].vert.index
+            b = ls[(i + 1) % n].vert.index
+            ua = (ls[i][uvl].uv.x, ls[i][uvl].uv.y)
+            ub = (ls[(i + 1) % n][uvl].uv.x, ls[(i + 1) % n][uvl].uv.y)
+            groups.setdefault(frozenset((a, b)), []).append(
+                (f.index, i, a, b, ua, ub))
+
+    boundary = []
+    for insts in groups.values():
+        if len(insts) == 1:
+            boundary.append(insts[0])
+            continue
+        used = [False] * len(insts)
+        for i in range(len(insts)):
+            if used[i]:
+                continue
+            f1, _li, a1, b1, ua1, ub1 = insts[i]
+            matched = False
+            for j in range(i + 1, len(insts)):
+                if used[j]:
+                    continue
+                _f2, _lj, a2, b2, ua2, ub2 = insts[j]
+                if ((a2, b2) == (b1, a1)
+                        and abs(ua2[0] - ub1[0]) < UV_SEAM_EPS
+                        and abs(ua2[1] - ub1[1]) < UV_SEAM_EPS
+                        and abs(ub2[0] - ua1[0]) < UV_SEAM_EPS
+                        and abs(ub2[1] - ua1[1]) < UV_SEAM_EPS):
+                    used[i] = used[j] = True
+                    matched = True
+                    break
+            if not matched:
+                boundary.append(insts[i])
+                used[i] = True
+
+    # Walk boundary half-edges into closed loops.
+    starts: dict[int, list[tuple]] = {}
+    for be in boundary:
+        starts.setdefault(be[2], []).append(be)
+    loops = []
+    while any(starts.values()):
+        startv = next(v for v, lst in starts.items() if lst)
+        cur = starts[startv].pop()
+        pts = [cur[4]]
+        while True:
+            opts = starts.get(cur[3], [])
+            if not opts:
+                break
+            cur = opts.pop(0)
+            pts.append(cur[4])
+        if len(pts) >= 3:
+            loops.append(tuple(pts))
+
+    # Classify outer vs hole by centroid nesting against larger loops.
+    info = []
+    for lp in loops:
+        area = _shoelace(lp)
+        cx = sum(p[0] for p in lp) / len(lp)
+        cy = sum(p[1] for p in lp) / len(lp)
+        info.append((abs(area), (cx, cy), lp))
+    info.sort(key=lambda t: -t[0])
+    outers: list[tuple] = []
+    holes: list[tuple] = []
+    for _a, c, lp in info:
+        if any(_pip(c, o) for o in outers):
+            holes.append(lp)
+        else:
+            outers.append(lp)
+    return outers, holes
+
+
 def island_bounds(bm, uvl, face_indices: set[int]) -> tuple[float, float, float, float]:
     """Current (minx, miny, maxx, maxy) UV bounds of the given faces."""
     minx = miny = math.inf

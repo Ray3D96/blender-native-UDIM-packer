@@ -22,3 +22,6 @@ __pycache__/
 *.blend1
 *.tmp
 .blender*
+
+# Vendored copy of a tagged release (regenerate: git archive v0.1.5)
+.scratch/v015/

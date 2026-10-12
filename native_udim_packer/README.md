@@ -36,10 +36,19 @@ operators. No external engines, binaries or third-party libraries.
   one click. All objects share one texture set: their islands are balanced
   across the whole grid together and **never overlap, even between different
   objects** (each object keeps its own UV map).
+- **Shape-aware packing** — each island is placed as its *actual* outline
+  polygon (seam-walked boundary plus holes), not just its bounding box.
+  Small islands nest into the holes of larger ones, concave notches can be
+  interlocked, and the margin gap is enforced between the real shapes — so
+  empty space inside an island's bounding box is no longer wasted. Islands
+  that are tiny or effectively rectangular automatically use a faster
+  rectangle path with identical results to before.
 - **Native building blocks only** — `bmesh` seam-aware island detection plus a
-  pure-Python layout solver (LPT-balanced tile assignment, greedy bottom-left
-  placement, one closed-form global scale). No external engines, no subprocess
-  calls, fully deterministic: the same input always produces the same layout.
+  pure-Python layout solver (LPT-balanced tile assignment, bounded local
+  search for tile balancing, greedy bottom-left placement with polygon
+  collision testing, one closed-form global scale). No external engines, no
+  subprocess calls, fully deterministic: the same input always produces the
+  same layout.
 - **Undoable** — the operator is registered with `UNDO` and pushes a labeled
   undo step ("Native UDIM: Pack to Grid").
 
@@ -52,7 +61,7 @@ operators. No external engines, binaries or third-party libraries.
 
 1. In Blender open **Edit → Preferences → Add-ons** (or *Extensions* in the
    new-style UI).
-2. Click **Install from Disk…** and select `native_udim_packer-0.1.5.zip`
+2. Click **Install from Disk…** and select `native_udim_packer-0.1.6.zip`
    (or unzip it and point the installer at the `native_udim_packer` folder).
 3. Enable **Native UDIM Packer**.
 
@@ -65,7 +74,7 @@ Preferences.
 > installing. Two ways to verify which build is actually running: the panel
 > shows a `version x.y.z` stamp at the top of the UDIM tab, and the addon
 > prints `Native UDIM Packer v<version> registered` to the console on
-> startup (this release: **0.1.5**).
+> startup (this release: **0.1.6**).
 
 ## Usage
 
@@ -108,7 +117,9 @@ three tiles (UDIMs 1001, 1002, 1003) set X = 3, Y = 1; for a vertical stack
    Comparing explicit per-vertex corners (not loop starts, which sit at
    opposite ends of a shared edge) is what keeps multi-face islands intact —
    e.g. Blender's built-in monkey mesh correctly resolves to its 5 real UV
-   islands instead of one island per face.
+   islands instead of one island per face. The same seam walk also extracts
+   each island's **outline**: the closed outer boundary loop plus any hole
+   loops (classified by nesting), which feeds shape-aware packing.
 2. **Optional normalization** — with *Normalize Scale* on, each island gets an
    equalizing factor `sqrt( (ΣUV / Σ3D) · 3Dᵢ / UVᵢ )`, which makes texel
    density identical for every island while preserving the total UV footprint.
@@ -117,17 +128,30 @@ three tiles (UDIMs 1001, 1002, 1003) set X = 3, Y = 1; for a vertical stack
 3. **Tile balancing** — *all* target objects' islands are pooled and assigned
    to tiles with LPT scheduling (largest-first into the currently emptiest
    tile). Three deterministic orderings (area, longest side, perimeter) are
-   tried and the assignment with the best balance is kept.
+   tried and the assignment with the best balance is kept; a bounded local
+   search then moves/swaps a few of the largest islands between tiles until
+   the per-tile extents are as even as possible.
 4. **Global rigid layout** — each tile's islands are packed at reference scale
    with a greedy bottom-left placement (90° rotation candidates when enabled),
-   growing a bounding square per tile until everything fits. One uniform scale
-   `S*` then closes the whole grid: every island receives exactly one rigid
-   transform — scale `normᵢ · S*`, optional 90° rotation, translation into its
-   tile's `[u+margin, …] × [v+margin, …]` interior. Because there is a single
-   global factor, relative island sizes are preserved exactly (normalize off)
-   or made proportional to real-world size (normalize on), and used tiles come
-   out as full as this heuristic family allows. If the content exceeds grid
-   capacity, `S* < 1` shrinks everything uniformly — proportions intact.
+   growing a bounding square per tile until everything fits. Islands with a
+   meaningful outline are placed as their real polygon: the outline is
+   simplified with Douglas–Peucker, collision is tested edge-by-edge plus
+   point-in-polygon (holes count as empty space), and placement tries two
+   phases — first the classic bottom-left candidate set plus *hole
+   attractors* (small islands are offered the centre of every hole in a
+   placed island), then an expanded set of outline-edge alignments that lets
+   concave notches interlock. The margin gap is enforced between offset
+   shapes, so two islands keep a true `margin`-wide clearance even where one
+   wraps around the other. Islands that are tiny or effectively rectangular
+   use the classic rectangle path (identical to earlier releases). One uniform
+   scale `S*` then closes the whole grid: every island receives exactly one
+   rigid transform — scale `normᵢ · S*`, optional 90° rotation, translation
+   into its tile's `[u+margin, …] × [v+margin, …]` interior. Because there is
+   a single global factor, relative island sizes are preserved exactly
+   (normalize off) or made proportional to real-world size (normalize on), and
+   used tiles come out as full as this heuristic family allows. If the content
+   exceeds grid capacity, `S* < 1` shrinks everything uniformly — proportions
+   intact.
 5. **Isolated writeback** — each object is edited in its own edit session: its
    live islands are re-detected and matched to the plan (island fingerprint =
    face count + 3D/UV area + UV bbox size), then moved/scaled/rotated into
@@ -174,8 +198,10 @@ Python so it runs inside Blender without any external engine.
   (after normalization, when enabled) exceeds what the grid can hold, every
   island is shrunk uniformly by the same factor. Increase the grid or reduce
   normalize's effect on oversized shells if you need larger UVs.
-- The pure-Python solver is deterministic and fast; thousands of islands pack
-  in well under a second on typical hardware.
+- The pure-Python solver is deterministic and fast: thousands of simple
+  (rectangular) islands pack in well under a second, and typical real-world
+  scenes with full outline packing take only a few seconds on typical
+  hardware.
 
 ## License
 

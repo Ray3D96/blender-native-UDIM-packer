@@ -1,0 +1,26 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.1.6 registered
+Native UDIM Packer v0.1.6 registered
+islands: 5
+  item 0: faces=32 w=0.2395 h=0.2395 area=0.0574 outline_verts=0
+  item 1: faces=32 w=0.2395 h=0.2395 area=0.0574 outline_verts=0
+  item 2: faces=318 w=0.9997 h=0.4805 area=0.4804 outline_verts=0
+  item 3: faces=59 w=0.3382 h=0.4210 area=0.1424 outline_verts=0
+  item 4: faces=59 w=0.3382 h=0.4210 area=0.1424 outline_verts=0
+LPT area: t0:[[2]]E=1.000, t1:[[4, 1]]E=0.671, t2:[[3, 0]]E=0.671
+LPT maxdim: t0:[[2]]E=1.000, t1:[[4, 1]]E=0.671, t2:[[3, 0]]E=0.671
+LPT perim: t0:[[2]]E=1.000, t1:[[4, 1]]E=0.671, t2:[[3, 0]]E=0.671
+  pass 0: t0:[[2]]E=1.000 t1:[[4, 1]]E=0.671 t2:[[3, 0]]E=0.671
+  pass 1: t0:[[2]]E=1.000 t1:[[4, 1]]E=0.671 t2:[[3, 0]]E=0.671
+  pass 2: t0:[[2]]E=1.000 t1:[[4, 1]]E=0.671 t2:[[3, 0]]E=0.671
+  pass 3: t0:[[2]]E=1.000 t1:[[4, 1]]E=0.671 t2:[[3, 0]]E=0.671
+
+S* = 0.9802744879477613
+  item 2 -> tile (1,0) pos=(0.000,0.000) size=1.000x0.481 rot=False
+  item 3 -> tile (1,0) pos=(0.348,0.491) size=0.338x0.421 rot=False
+  item 4 -> tile (1,0) pos=(0.000,0.491) size=0.338x0.421 rot=False
+  item 0 -> tile (2,0) pos=(0.000,0.000) size=0.240x0.240 rot=False
+  item 1 -> tile (2,0) pos=(0.000,0.250) size=0.240x0.240 rot=False
+DEBUG DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+

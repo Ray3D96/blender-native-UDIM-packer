@@ -21,7 +21,7 @@ ok = enabled
 try:
     import native_udim_packer as A
     print("VERIFY version:", tuple(A.bl_info["version"]), A.VERSION)
-    ok = ok and tuple(A.bl_info["version"]) == (0, 1, 5) and A.VERSION == "0.1.5"
+    ok = ok and tuple(A.bl_info["version"]) == (0, 1, 6) and A.VERSION == "0.1.6"
 except Exception as exc:  # noqa: BLE001
     print("VERIFY import failed:", exc)
     A = None
