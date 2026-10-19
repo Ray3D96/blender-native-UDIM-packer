@@ -30,8 +30,8 @@ native packing to a user-defined UDIM count, with standard UDIM numbering
    `native_udim_packer-X.Y.Z.zip` → enable **Native UDIM Packer**.
 2. **Select** one or more mesh objects that already have a UV map (any
    unwrap works — *Smart UV Project* is a good default).
-3. In the **UV Editor**, select all UVs (`A`) and run *UV > Average >
-   Islands > Scale*. **Important:** average island scale before use for
+3. In the **UV Editor**, select all UVs (`A`) and run *UV > Average
+   Islands Scale*. **Important:** average island scale before use for
    best results — uneven native island scales are a known rough edge of the
    current packer (fix planned).
 4. Press `N` and switch the sidebar to the **UDIM** tab.
