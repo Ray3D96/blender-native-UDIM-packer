@@ -31,6 +31,7 @@ same result.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 
@@ -387,6 +388,38 @@ def next_scale(S: float, tile_interior: float, extents, tol: float = 2e-4):
     if f >= 1.0:      # defensive: overflow the packer cannot express as
         f = 0.9       # extent growth - keep shrinking deterministically
     return S * max(f, 1e-6) * 0.995, False
+
+
+def final_growth_factor(extents_by_tile, margin: float) -> float:
+    """Global re-center + growth factor for a finished layout.
+
+    ``extents_by_tile`` maps each used tile to the tile-local (0..1 UV
+    space) content bbox ``(minx, miny, maxx, maxy)`` measured after the
+    final packing round.  Every tile's content is first re-centered on its
+    tile center, which gives each axis symmetric headroom; the largest
+    uniform factor that keeps every tile inside its margin boundary is
+
+        K = min over used tiles t and axes a of (1 - 2m) / extent_a(t)
+
+    i.e. the tightest tile/axis sets the scale for everything, so one
+    global factor equalizes texel density while maxing out the bottleneck.
+    Returns 1.0 when nothing can grow or no tile is used; the result is
+    always >= 1.0 (float noise below the current size clamps to 1.0).
+    """
+    interior = 1.0 - 2.0 * margin
+    if interior <= 0.0:
+        return 1.0
+    k = math.inf
+    for extent in extents_by_tile.values():
+        w = extent[2] - extent[0]
+        h = extent[3] - extent[1]
+        if w > 1e-9:
+            k = min(k, interior / w)
+        if h > 1e-9:
+            k = min(k, interior / h)
+    if not math.isfinite(k):
+        return 1.0
+    return max(1.0, k)
 
 
 def solve(items, grid_x: int, grid_y: int, margin: float, oracle,

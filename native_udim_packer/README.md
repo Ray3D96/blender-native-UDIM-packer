@@ -24,9 +24,13 @@ operators. No external engines, binaries or third-party libraries.
   second line of defense the addon re-reads the UVs it just wrote and runs an
   exact polygon-overlap test across every pair of islands in each tile; if a
   round ever comes back dirty, it is rejected and the content is uniformly
-  shrunk until the pack is clean. The guarantee holds within a tile and
-  across objects: co-packed tiles are verified after every placement round,
-  so an island can never be written on top of another one's space.
+  shrunk until the pack is clean. The final re-center/growth pass (step 5)
+  applies one similarity transform per tile — a move + uniform scale about
+  the tile's own content center — which preserves all relative geometry
+  inside each tile, so it cannot create an overlap either. The guarantee
+  holds within a tile and across objects: co-packed tiles are verified after
+  every placement round, so an island can never be written on top of another
+  one's space.
 - **Islands stay intact** — the packer only moves, scales and rotates your
   existing UV islands; it never re-unwraps, cuts new seams or splits an
   island. A multi-face island always ends up whole inside a single tile.
@@ -68,7 +72,7 @@ operators. No external engines, binaries or third-party libraries.
 
 1. In Blender open **Edit → Preferences → Add-ons** (or *Extensions* in the
    new-style UI).
-2. Click **Install from Disk…** and select `native_udim_packer-0.2.0.zip`
+2. Click **Install from Disk…** and select `native_udim_packer-0.2.1.zip`
    (or unzip it and point the installer at the `native_udim_packer` folder).
 3. Enable **Native UDIM Packer**.
 
@@ -81,7 +85,7 @@ Preferences.
 > installing. Two ways to verify which build is actually running: the panel
 > shows a `version x.y.z` stamp at the top of the UDIM tab, and the addon
 > prints `Native UDIM Packer v<version> registered` to the console on
-> startup (this release: **0.2.0**).
+> startup (this release: **0.2.1**).
 
 ## Usage
 
@@ -172,7 +176,12 @@ three tiles (UDIMs 1001, 1002, 1003) set X = 3, Y = 1; for a vertical stack
    done by Blender's own packer and every round is verified afterwards,
    islands inside a tile cannot overlap — and because the scale search
    re-measures after every round, no island can end up outside its tile
-   either.
+   either. After the final round, each used tile's content is re-centered on
+   its tile center; when headroom remains inside the margin box, all tiles
+   are then grown by one uniform factor limited by the tightest tile/axis,
+   so the bottleneck UDIM is maxed out while texel density stays equal
+   across tiles: one similarity transform per tile, no re-packing, no new
+   overlaps.
 6. **Atomicity** — the search rounds *are* the writeback: the final round
    leaves every object's mesh holding its finished placement, so no second
    pass can disturb it. If anything fails mid-pack, every object's UVs are
@@ -227,6 +236,19 @@ by Blender's own packer.
 
 ## Changelog
 
+- **0.2.1** — final re-center + growth pass. After the scale search finishes,
+  each used tile's content is re-centered on its tile center; when headroom
+  remains inside the margin box, every tile is then scaled by one global
+  uniform factor, limited by the tightest tile/axis: the UDIM with the least
+  room to grow sets the size for all the others, so texel density stays equal
+  across tiles while the bottleneck axis reaches its margin boundary. If a
+  dense packing already spans wider than the [m, 1-m] box - `uv.pack_islands`
+  treats its margin as island-to-island spacing only - the factor stays at
+  1.0 and only the re-centering is applied. It is a single similarity
+  transform per tile (move + scale about the content center), so it costs
+  milliseconds, never re-packs, and cannot create any new overlap. The
+  reported global scale now includes this growth factor (`stretch_factor` is
+  reported separately).
 - **0.2.0** — new packing engine. Placement is now done by Blender's built-in
   `uv.pack_islands` operator (once per used tile, with every object sharing
   that tile packed together in one multi-object edit session), which

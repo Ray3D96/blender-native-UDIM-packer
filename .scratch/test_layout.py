@@ -373,6 +373,33 @@ except RuntimeError as e:
     check("solve always-refusal raises", "did not converge" in str(e),
           str(e))
 
+# ------------------------------------------------- final_growth_factor (K*)
+# K = min over used tiles/axes of interior/extent; re-centering gives each
+# axis symmetric headroom.  The tightest tile/axis sets the scale for all.
+fgf = L.final_growth_factor
+check("fgf empty -> 1.0", fgf({}, 0.0) == 1.0)
+check("fgf single tile Y bottleneck",
+      abs(fgf({0: (0.3, 0.1, 0.7, 0.9)}, 0.0) - 1.0 / 0.8) < 1e-12,
+      f"K={fgf({0: (0.3, 0.1, 0.7, 0.9)}, 0.0)}")
+check("fgf single tile X bottleneck",
+      abs(fgf({0: (0.05, 0.2, 0.95, 0.8)}, 0.0) - 1.0 / 0.9) < 1e-12,
+      f"K={fgf({0: (0.05, 0.2, 0.95, 0.8)}, 0.0)}")
+check("fgf two tiles, other tile's Y is bottleneck",
+      abs(fgf({0: (0.1, 0.2, 0.9, 0.7), 1: (0.2, 0.05, 0.8, 0.95)}, 0.0)
+          - 1.0 / 0.9) < 1e-12,
+      f"K={fgf({0: (0.1, 0.2, 0.9, 0.7), 1: (0.2, 0.05, 0.8, 0.95)}, 0.0)}")
+check("fgf margin respected",
+      abs(fgf({0: (0.05, 0.3, 0.95, 0.7)}, 0.05) - 0.9 / 0.9) < 1e-12,
+      f"K={fgf({0: (0.05, 0.3, 0.95, 0.7)}, 0.05)}")
+check("fgf already maxed -> 1.0", fgf({0: (0.0, 0.1, 1.0, 0.4)}, 0.0) == 1.0)
+k_noise = fgf({0: (0.0, 0.1, 1.0 + 1e-7, 0.4)}, 0.0)
+check("fgf float noise clamps to >= 1.0", k_noise >= 1.0 - 1e-12 and k_noise < 1.0 + 1e-6,
+      f"K={k_noise!r}")
+check("fgf degenerate zero-width island uses Y only",
+      abs(fgf({0: (0.5, 0.2, 0.5, 0.8)}, 0.0) - 1.0 / 0.6) < 1e-12,
+      f"K={fgf({0: (0.5, 0.2, 0.5, 0.8)}, 0.0)}")
+check("fgf degenerate margin >= 0.5 -> 1.0", fgf({0: (0.1, 0.1, 0.9, 0.9)}, 0.5) == 1.0)
+
 print()
 print(f"RESULT: {PASS} passed, {FAIL} failed")
 sys.exit(1 if FAIL else 0)

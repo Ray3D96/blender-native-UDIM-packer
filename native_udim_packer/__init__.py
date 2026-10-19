@@ -5,8 +5,9 @@ Packs UV islands of the active/selected objects into a user-defined UDIM
 tile grid (e.g. 1x1, 2x2, 4x1) using only Blender's built-in facilities:
 bmesh seam-aware island detection, one global uniform scale solved by a
 pure-Python first-fit-decreasing tile assignment with a measured
-feasibility search, and per-tile placement by the built-in
-``uv.pack_islands`` operator (shape-aware, no overlaps).
+feasibility search, per-tile placement by the built-in ``uv.pack_islands``
+operator (shape-aware, no overlaps), and a final re-center + growth pass
+that maxes out the tightest UDIM axis for maximum texel density.
 
 No external engines, binaries or third-party libraries are used.
 """
@@ -14,7 +15,7 @@ No external engines, binaries or third-party libraries are used.
 bl_info = {
     "name": "Native UDIM Packer",
     "author": "Blender community",
-    "version": (0, 2, 0),
+    "version": (0, 2, 1),
     "blender": (5, 2, 0),
     "location": "UV Editor > Sidebar (N) > UDIM tab",
     "description": (

@@ -24,6 +24,12 @@ islands ever overlap - even when they belong to different objects.
    no overlaps by construction), and the measured post-pack extent of each
    tile is the feasibility oracle.  The final round leaves the finished
    layout in place - there is no separate writeback pass.
+    4. Re-center + grow: every used tile's content is re-centered on its
+       tile center, then all tiles are scaled by one uniform factor limited
+       by the tightest tile/axis (``layout.final_growth_factor``), so the
+       finished layout maxes out the bottleneck UDIM while keeping texel
+       density equal across tiles.  One similarity transform per tile, so
+       no new overlaps are possible.
 
 Consequences:
 
@@ -37,7 +43,9 @@ Consequences:
   confirms every tile fits by measurement.  Used tiles are filled as
   densely as the packer allows, sequentially from 1001 upward; when total
   content exceeds grid capacity everything shrinks uniformly and
-  proportions stay intact.
+  proportions stay intact.  The reported ``global_scale`` is the effective
+  scale actually written: ``S*`` times the final re-center/growth factor
+  (reported separately as ``stretch_factor``).
 * "90 degree rotation" ON lets the native packer rotate individual
   islands by 90 degrees (cardinal directions) when that saves space; OFF
   keeps every island in its current orientation.
@@ -66,6 +74,7 @@ from .islands import (
 )
 from .layout import Item as _LayoutItem
 from .layout import PackRefusedError as _PackRefusedError
+from .layout import final_growth_factor as _final_growth_factor
 from .layout import tile_islands_overlap as _tile_islands_overlap
 from .layout import solve as _layout_solve
 from .layout import tile_order as _tile_order
@@ -432,6 +441,110 @@ def _execute_round(state: list, assign: dict, positions: list, S: float,
     return extents
 
 
+def _stretch_final_layout(state: list, assign_final: dict, positions: list,
+                          margin: float) -> float:
+    """Re-center each used tile's content and grow it by one global factor.
+
+    Every tile is re-centered on its tile center, and - when any headroom
+    remains - all tiles are scaled together by one uniform factor until the
+    tightest tile/axis reaches its margin boundary (see
+    :func:`native_udim_packer.layout.final_growth_factor`); a single global
+    factor keeps texel density equal across UDIMs.  Per tile this is one
+    similarity transform - re-centering plus scaling about the content's
+    bbox center - which preserves all relative geometry inside the tile and
+    therefore cannot create any new overlap.
+
+    Note that ``uv.pack_islands`` treats its margin as island-to-island
+    spacing, not as a boundary offset: a dense packing can legitimately span
+    slightly wider than the [m, 1-m] box (it always stays inside the tile).
+    When no tile/axis has headroom the factor is 1.0 and only the pure
+    re-centering translation is applied.
+
+    Runs in object mode on the finished layout (the final round has left
+    the meshes written).  Returns the applied factor (>= 1.0; 1.0 when
+    nothing can grow - the re-centering still happens).
+    """
+    # Face -> tile membership for every packed object (each face belongs to
+    # exactly one island, hence to exactly one tile).
+    face_tile: dict[str, dict[int, int]] = {}
+    for s in state:
+        m: dict[int, int] = {}
+        for i in s["islands"]:
+            t = assign_final[i._item_index]
+            for fi in i.face_indices:
+                m[fi] = t
+        face_tile[s["ob"].name] = m
+
+    # Measure each used tile's content bbox in global UV space.
+    bboxes: dict[int, list] = {}
+    for s in state:
+        ob = s["ob"]
+        fmap = face_tile[ob.name]
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        try:
+            uvl = bm.loops.layers.uv.active
+            for f in tuple(bm.faces):
+                t = fmap.get(f.index)
+                if t is None:
+                    continue
+                bb = bboxes.setdefault(
+                    t, [math.inf, math.inf, -math.inf, -math.inf])
+                for l in tuple(f.loops):
+                    x, y = l[uvl].uv.x, l[uvl].uv.y
+                    if x < bb[0]:
+                        bb[0] = x
+                    if x > bb[2]:
+                        bb[2] = x
+                    if y < bb[1]:
+                        bb[1] = y
+                    if y > bb[3]:
+                        bb[3] = y
+        finally:
+            bm.free()
+
+    local_extents = {t: [bb[0] - positions[t][0], bb[1] - positions[t][1],
+                         bb[2] - positions[t][0], bb[3] - positions[t][1]]
+                     for t, bb in bboxes.items()}
+    K = _final_growth_factor(local_extents, margin)
+
+    # Apply one similarity transform per used tile: content center -> tile
+    # center, scaled by K.  uv' = tile_center + (uv - content_center) * K
+    # With K == 1.0 this is the pure re-centering translation; it is always
+    # applied so every used tile carries balanced margins around its
+    # content, even when no growth is possible.
+    centers = {t: [(bb[0] + bb[2]) * 0.5, (bb[1] + bb[3]) * 0.5]
+               for t, bb in bboxes.items()}
+    written_meshes = set()
+    for s in state:
+        ob = s["ob"]
+        if id(ob.data) in written_meshes:
+            # Linked-duplicate mesh data: the first owner already wrote the
+            # transform; re-applying it would scale twice.
+            continue
+        written_meshes.add(id(ob.data))
+        fmap = face_tile[ob.name]
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        try:
+            uvl = bm.loops.layers.uv.active
+            for f in tuple(bm.faces):
+                t = fmap.get(f.index)
+                if t is None:
+                    continue
+                tu, tv = positions[t]
+                cx, cy = centers[t]
+                px, py = tu + 0.5, tv + 0.5
+                for l in tuple(f.loops):
+                    u = l[uvl].uv
+                    u.x = px + (u.x - cx) * K
+                    u.y = py + (u.y - cy) * K
+            bm.to_mesh(ob.data)
+        finally:
+            bm.free()
+    return K
+
+
 def _restore_snapshots(state: list) -> None:
     """Write the original UVs back for every object (best effort)."""
     for s in state:
@@ -553,6 +666,13 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
         return {"error": "scale search did not converge", "objects": {},
                 "errors": errors}
 
+    # 3b) re-center + global growth: the final round always leaves slack in
+    #     the tiles; grow every tile by one uniform factor (limited by the
+    #     tightest tile/axis) to maximize texel density.  One similarity
+    #     transform per tile, so no new overlaps are possible and the exact
+    #     verification of the final round stays valid.
+    stretch = _stretch_final_layout(state, assign_final, positions, margin)
+
     # 4) report ---------------------------------------------------------
     used_set = set(assign_final.values())
     tile_owners: dict[int, set] = {}
@@ -582,7 +702,10 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
         "fallback_reasons": [],
         "shared_tiles": sum(1 for owners in tile_owners.values()
                             if len(owners) > 1),
-        "global_scale": S_final,
+        # The effective uniform scale actually written to the meshes: the
+        # solved scale times the final re-center/growth factor.
+        "global_scale": S_final * stretch,
+        "stretch_factor": stretch,
         "tiles_used_total": [positions[t] for t in sorted(used_set)],
     }
 

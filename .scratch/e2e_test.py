@@ -21,7 +21,7 @@ def check(name, cond, detail=""):
 
 
 # ---------------------------------------------------------------- install --
-ZPATH = "/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.2.0.zip"
+ZPATH = "/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.2.1.zip"
 r = bpy.ops.preferences.addon_install(filepath=ZPATH)
 check("install from zip", r == {'FINISHED'}, str(r))
 bpy.ops.preferences.addon_enable(module="native_udim_packer")
@@ -49,9 +49,9 @@ _A.register()
 
 has_op = hasattr(bpy.ops.native_udim, "pack_to_grid")
 check("operator registered", has_op)
-check("release version is 0.2.0", tuple(_A.bl_info["version"]) == (0, 2, 0),
+check("release version is 0.2.1", tuple(_A.bl_info["version"]) == (0, 2, 1),
       str(tuple(_A.bl_info["version"])))
-check("VERSION string for panel stamp", _A.VERSION == "0.2.0", _A.VERSION)
+check("VERSION string for panel stamp", _A.VERSION == "0.2.1", _A.VERSION)
 
 # Settings must be a persistent PropertyGroup on the window manager - the
 # only pattern whose widgets are interactive in Blender 5.x (widgets bound
@@ -737,6 +737,106 @@ def raster_conflicts(ob, gx, gy):
 conf15, worst15 = raster_conflicts(ob, 2, 2)
 check("T15 zero overlap (512^2 raster audit, all islands)",
       conf15 == 0, f"conflict_pixels={conf15} worst={worst15}")
+
+# --- Test 16: final re-center pass (no-headroom branch, K == 1) ------------
+# uv.pack_islands treats its margin as island-to-island spacing, NOT as a
+# boundary offset: this dense 2x2 packing legitimately spans slightly wider
+# than the [m, 1-m] box on its full tiles, so no growth is possible and the
+# pass applies the pure re-centering translation only.  These invariants
+# hold for BOTH branches of the stretch pass (T17 covers K > 1):
+# (a) every used tile's content is centered on its tile center,
+# (b) nothing leaves its tile,
+# (c) the tightest tile/axis sits at or beyond its margin limit - which is
+#     exactly why no growth was possible.
+m16 = 0.01
+lin16 = 1.0 - 2 * m16
+per_tile_bb = {}
+for p in res["per_island"]:
+    if p["tile"] is None:
+        continue
+    bb = per_tile_bb.setdefault(p["tile"], [p["bounds"][0], p["bounds"][1],
+                                             p["bounds"][2], p["bounds"][3]])
+    if p["bounds"][0] < bb[0]:
+        bb[0] = p["bounds"][0]
+    if p["bounds"][1] < bb[1]:
+        bb[1] = p["bounds"][1]
+    if p["bounds"][2] > bb[2]:
+        bb[2] = p["bounds"][2]
+    if p["bounds"][3] > bb[3]:
+        bb[3] = p["bounds"][3]
+centers_ok = True
+max_frac = 0.0
+out_of_tile = False
+bb_detail = {}
+for (tu, tv), bb in per_tile_bb.items():
+    w = bb[2] - bb[0]
+    h = bb[3] - bb[1]
+    cx = (bb[0] + bb[2]) * 0.5 - tu
+    cy = (bb[1] + bb[3]) * 0.5 - tv
+    if abs(cx - 0.5) > 1e-3 or abs(cy - 0.5) > 1e-3:
+        centers_ok = False
+    max_frac = max(max_frac, w / lin16, h / lin16)
+    if w > 1.0 + 1e-4 or h > 1.0 + 1e-4:
+        out_of_tile = True
+    bb_detail[(tu, tv)] = (round(w / lin16, 3), round(h / lin16, 3))
+check("T16 content re-centered in every used tile", centers_ok,
+      f"tile_fracs={bb_detail}")
+check("T16 no tile exceeds its boundary after the stretch pass",
+      not out_of_tile, f"tile_fracs={bb_detail}")
+check("T16 bottleneck axis at or beyond its margin limit",
+      max_frac >= 1.0 - 1e-3 and "stretch_factor" in r14,
+      f"max_frac={max_frac:.5f} K={r14.get('stretch_factor')}")
+
+# --- Test 17: final re-center + growth pass (headroom branch, K > 1) -------
+# With margin=0 the same fixture leaves real headroom on every axis of every
+# used tile, so one global factor K > 1 must grow ALL tiles together until
+# the tightest tile/axis hits the margin boundary (interior = 1 - 2m = 1.0):
+# max texel density with equal proportions across UDIMs.  A fresh object
+# keeps this branch independent of T14's state.
+clean_scene()
+ob17 = make_test_object("t17")
+r17 = P.pack_objects([ob17], 2, 2, False, True, 0.0)
+ok17, res17 = audit(ob17, 2, 2)
+K17 = r17.get("stretch_factor")
+per_tile_bb17 = {}
+for p in res17["per_island"]:
+    if p["tile"] is None:
+        continue
+    bb = per_tile_bb17.setdefault(p["tile"], [p["bounds"][0],
+                                               p["bounds"][1],
+                                               p["bounds"][2],
+                                               p["bounds"][3]])
+    if p["bounds"][0] < bb[0]:
+        bb[0] = p["bounds"][0]
+    if p["bounds"][1] < bb[1]:
+        bb[1] = p["bounds"][1]
+    if p["bounds"][2] > bb[2]:
+        bb[2] = p["bounds"][2]
+    if p["bounds"][3] > bb[3]:
+        bb[3] = p["bounds"][3]
+centers17 = True
+over17 = False
+max_ext17 = 0.0
+detail17 = {}
+for (tu, tv), bb in per_tile_bb17.items():
+    w = bb[2] - bb[0]
+    h = bb[3] - bb[1]
+    cx = (bb[0] + bb[2]) * 0.5 - tu
+    cy = (bb[1] + bb[3]) * 0.5 - tv
+    if abs(cx - 0.5) > 1e-3 or abs(cy - 0.5) > 1e-3:
+        centers17 = False
+    max_ext17 = max(max_ext17, w, h)      # interior == 1.0 at margin=0
+    if w > 1.0 + 1e-4 or h > 1.0 + 1e-4:
+        over17 = True
+    detail17[(tu, tv)] = (round(w, 3), round(h, 3))
+check("T17 global growth applied (stretch factor > 1)",
+      "error" not in r17 and ok17 and K17 is not None and K17 > 1.0 + 1e-6,
+      f"K={K17} S*={r17.get('global_scale', '?')}")
+check("T17 grown content re-centered in every used tile", centers17,
+      f"tile_extents={detail17}")
+check("T17 bottleneck axis maxed out at the margin limit",
+      not over17 and max_ext17 >= 1.0 - 1e-3,
+      f"max_extent={max_ext17:.5f} K={K17}")
 
 # --- Test 11: panel draw() headless crash guard ----------------------------
 # Blender 5.x raises AttributeError when draw() assigns attributes to the

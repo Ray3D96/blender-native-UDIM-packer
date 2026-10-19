@@ -1,0 +1,16 @@
+00:00.194  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.0 registered
+Native UDIM Packer v0.2.0 registered
+QA rotate_90=False version=0.2.0 objects=35 eta=None
+QA PACK TIME 13.91s  S*=0.8808441322775589 K=None
+QA tiles_used_total=[(0, 0), (1, 0), (2, 0)] shared_tiles=3
+QA islands=268 fills={(0, 0): 0.65, (1, 0): 0.65, (2, 0): 0.3524}
+QA tile_extents={(2, 0): (0.6069, 0.6098), (1, 0): (0.9939, 0.8236), (0, 0): (0.8866, 0.824)}
+QA LAYOUT bounds=(0.0000, 0.0000, 2.6070, 0.8240) crossing_islands=0
+QA OVERLAP pairs=0 pixels=0 area~0.000000 (0.000%)
+QA DONE
+00:15.949  reports          | ERROR Cannot read file "/mnt/fusion/ai-projects/blender-uv-packer/rot": No such file or directory
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

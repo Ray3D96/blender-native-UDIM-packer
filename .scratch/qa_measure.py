@@ -1,4 +1,4 @@
-"""QA-scene measurement for the 0.2.0 native-packing engine.
+"""QA-scene measurement for the native-packing engine (v4 + stretch).
 
 Usage:
     blender --background --python .scratch/qa_measure.py            # rotate ON (user setting)
@@ -65,7 +65,8 @@ dt = time.time() - t0
 if "error" in res:
     print("QA PACK ERROR", res["error"])
     sys.exit(1)
-print(f"QA PACK TIME {dt:.2f}s  S*={res.get('global_scale')!r}")
+print(f"QA PACK TIME {dt:.2f}s  S*={res.get('global_scale')!r} "
+      f"K={res.get('stretch_factor')!r}")
 print(f"QA tiles_used_total={res.get('tiles_used_total')} "
       f"shared_tiles={res.get('shared_tiles')}")
 
@@ -75,6 +76,7 @@ print(f"QA tiles_used_total={res.get('tiles_used_total')} "
 # bucketing mis-assigned islands sitting in the upper/right half of a
 # tile to the next tile.)
 fills = {}
+tile_bb = {}
 n_islands = 0
 crossing = 0
 minx_all = miny_all = math.inf
@@ -92,6 +94,16 @@ for ob in targets:
         tu = int(math.floor(i.min_uv[0] + 1e-6))
         tv = int(math.floor(i.min_uv[1] + 1e-6))
         fills[(tu, tv)] = fills.get((tu, tv), 0.0) + w * h
+        bb = tile_bb.setdefault(
+            (tu, tv), [i.min_uv[0], i.min_uv[1], i.max_uv[0], i.max_uv[1]])
+        if i.min_uv[0] < bb[0]:
+            bb[0] = i.min_uv[0]
+        if i.min_uv[1] < bb[1]:
+            bb[1] = i.min_uv[1]
+        if i.max_uv[0] > bb[2]:
+            bb[2] = i.max_uv[0]
+        if i.max_uv[1] > bb[3]:
+            bb[3] = i.max_uv[1]
         minx_all = min(minx_all, i.min_uv[0])
         miny_all = min(miny_all, i.min_uv[1])
         maxx_all = max(maxx_all, i.max_uv[0])
@@ -99,6 +111,13 @@ for ob in targets:
     bm.free()
 print(f"QA islands={n_islands} "
       f"fills={ {t: round(v, 4) for t, v in sorted(fills.items())} }")
+# Per-tile content bbox extents in tile-local space (what the stretch pass
+# sees): extent >= 1.0 on any axis means that axis already maxes the tile.
+# Widths/heights are translation-invariant, so global-bbox deltas equal the
+# tile-local extents the stretch pass uses.
+ext = {t: (round(bb[2] - bb[0], 4), round(bb[3] - bb[1], 4))
+       for t, bb in tile_bb.items()}
+print(f"QA tile_extents={ext}")
 print(f"QA LAYOUT bounds=({minx_all:.4f}, {miny_all:.4f}, "
       f"{maxx_all:.4f}, {maxy_all:.4f}) crossing_islands={crossing}")
 

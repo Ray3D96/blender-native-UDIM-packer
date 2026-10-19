@@ -1,0 +1,25 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.1 registered
+DBG version=(0, 2, 1)
+DBG r: S*=1.7443869356655826 K=1.0 error=None
+DBG PRE-stretch no-lookup   (bad_index=0):
+DBG   tile(0, 0): w=0.984805 h=0.984805 frac=(1.00490,1.00490) center=(0.494120,0.494120)
+DBG   tile(0, 1): w=0.890268 h=0.923437 frac=(0.90844,0.94228) center=(0.447700,0.464284)
+DBG   tile(1, 0): w=0.983835 h=0.984803 frac=(1.00391,1.00490) center=(0.493634,0.494118)
+DBG PRE-stretch with-lookup (bad_index=0):
+DBG   tile(0, 0): w=0.984805 h=0.984805 frac=(1.00490,1.00490) center=(0.494120,0.494120)
+DBG   tile(0, 1): w=0.890268 h=0.923437 frac=(0.90844,0.94228) center=(0.447700,0.464284)
+DBG   tile(1, 0): w=0.983835 h=0.984803 frac=(1.00391,1.00490) center=(0.493634,0.494118)
+DBG POST-stretch truth:
+DBG   tile(0, 0): w=0.490685 h=0.490685 frac=(0.50070,0.50070) center=(0.247060,0.247060)
+DBG   tile(0, 1): w=0.641127 h=1.129825 frac=(0.65421,1.15288) center=(0.322281,0.060750)
+DBG   tile(0, 2): w=0.610228 h=0.584390 frac=(0.62268,0.59632) center=(0.307680,-0.366193)
+DBG   tile(1, 0): w=0.996564 h=0.490686 frac=(1.01690,0.50070) center=(-0.005881,0.247059)
+DBG   tile(1, 1): w=0.995596 h=1.129828 frac=(1.01591,1.15289) center=(-0.006365,0.060748)
+DBG   tile(1, 2): w=0.245342 h=0.245342 frac=(0.25035,0.25035) center=(-0.259404,-0.246536)
+DBG   tile(2, 0): w=0.489717 h=0.490685 frac=(0.49971,0.50070) center=(-0.259307,0.247059)
+DBG   tile(2, 1): w=0.245342 h=0.245343 frac=(0.25035,0.25035) center=(-0.382463,-0.381494)
+DBG DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

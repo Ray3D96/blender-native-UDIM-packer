@@ -25,3 +25,6 @@ __pycache__/
 
 # Vendored copy of a tagged release (regenerate: git archive v0.1.5)
 .scratch/v015/
+
+# Extracted v0.2.0 addon copy used for A/B QA runs (regenerable from tag)
+.scratch/qa_020_src/
