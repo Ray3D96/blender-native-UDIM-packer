@@ -8,8 +8,8 @@ the selected objects into a user-defined UDIM tile grid, 100% natively
 ## What it does
 
 Automatically packs the UV islands of one or more mesh objects into however
-many UDIMs you ask for — e.g. a 2×2 grid gives you tiles **1001–1004**, a
-3×1 grid gives **1001–1003**. Blender's built-in *Pack Islands* operator can
+many UDIMs you ask for — e.g. a 2×2 grid gives you tiles **1001, 1002,
+1011, 1012**, and a 3×1 grid gives **1001–1003**. Blender's built-in *Pack Islands* operator can
 only fill the single 0–1 UV square (one UDIM); this addon extends that same
 native packing to a user-defined UDIM count, with standard UDIM numbering
 (row stride of 10: 1001…1010, then 1011…).
