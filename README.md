@@ -5,6 +5,41 @@ the selected objects into a user-defined UDIM tile grid, 100% natively
 (`bpy` / `bmesh` / built-in operators only). Target platform: **Blender 5.2+**
 (developed and tested on 5.2.2 LTS).
 
+## What it does
+
+Automatically packs the UV islands of one or more mesh objects into however
+many UDIMs you ask for — e.g. a 2×2 grid gives you tiles **1001–1004**, a
+3×1 grid gives **1001–1003**. Blender's built-in *Pack Islands* operator can
+only fill the single 0–1 UV square (one UDIM); this addon extends that same
+native packing to a user-defined UDIM count, with standard UDIM numbering
+(row stride of 10: 1001…1010, then 1011…).
+
+- **Sequential tile filling** — tile 1001 is packed as densely as possible
+  before the next tile opens, so texel density stays maximal for the chosen
+  grid.
+- **Native only** — built exclusively from `bpy`, `bmesh` and Blender's own
+  `uv.pack_islands` operator; no external engines or binaries.
+- **Move/scale/rotate only** — islands are never cut, merged or re-unwrapped.
+- **Options** — equalize texel density (*Normalize Scale*), allow 90°
+  rotation, adjustable margin, pack all selected objects into one shared
+  grid, or pack only the UV islands you have selected in the UV editor.
+
+## How to use
+
+1. **Install:** Edit > Preferences > Add-ons > *Install…* → select
+   `native_udim_packer-X.Y.Z.zip` → enable **Native UDIM Packer**.
+2. **Select** one or more mesh objects that already have a UV map (any
+   unwrap works — *Smart UV Project* is a good default).
+3. Open the **UV Editor**, press `N` and switch the sidebar to the **UDIM**
+   tab.
+4. Set the grid size (tiles along X and Y, e.g. 2×2) and any options you
+   want, then click **Pack to UDIM Grid**.
+5. **Inspect** the result in the UV editor or an Image Editor with a UDIM
+   tile image — the islands now live in tiles 1001, 1002, ….
+
+See the [addon README](native_udim_packer/README.md) for the full feature
+list, per-option behaviour and how the packing engine works.
+
 ## AI Disclosure
 
 Made using Local AI: Qwen 3.8-27B UD_Q6_K_M, Deepseek Harness.
