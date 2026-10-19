@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Sidebar panel for the UV editor (N-panel, own "UDIM" tab).
 
 Layout is inspired by UVPackmaster's grouped sidebar panels: a prominent

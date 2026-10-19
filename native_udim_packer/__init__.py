@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Native UDIM Packer.
 
 Packs UV islands of the active/selected objects into a user-defined UDIM
@@ -14,7 +14,7 @@ No external engines, binaries or third-party libraries are used.
 
 bl_info = {
     "name": "Native UDIM Packer",
-    "author": "Blender community",
+    "author": "Ray3D96, Qwen3.8 27B UD_6K_M, Deepseek Harness",
     "version": (0, 3, 0),
     "blender": (5, 2, 0),
     "location": "UV Editor > Sidebar (N) > UDIM tab",
@@ -24,6 +24,7 @@ bl_info = {
         "normalization and 90-degree rotation"
     ),
     "category": "UV",
+    "license": "GPL v3 or later",
 }
 
 # Dotted version string, shown in the panel so the running build is

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: GPL-3.0-or-later
 """UDIM grid packing pipeline: one global uniform scale + native placement.
 
 Strategy (v4, validated against Blender 5.2):

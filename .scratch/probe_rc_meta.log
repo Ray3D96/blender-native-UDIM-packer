@@ -1,0 +1,18 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.3.0 registered
+reloading addon meta-data: native_udim_packer '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/__init__.py' (time-stamp change detected)
+Modules Installed () from '/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.3.0.zip' into '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons'
+Info: Modules Installed () from '/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.3.0.zip' into '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons'
+INSTALL: {'FINISHED'}
+module changed on disk: '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/__init__.py' reloading...
+Native UDIM Packer v0.3.0 registered
+Native UDIM Packer v0.3.0 registered
+META name: Native UDIM Packer
+META author: Ray3D96, Qwen3.8 27B UD_6K_M, Deepseek Harness
+META version: (0, 3, 0)
+META license: GPL v3 or later
+META category: UV
+META ok: True
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

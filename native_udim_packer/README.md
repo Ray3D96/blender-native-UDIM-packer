@@ -5,6 +5,8 @@ selected) objects into a **user-defined UDIM tile grid** — in the spirit of
 UVPackmaster, but built exclusively from `bpy`, `bmesh` and Blender's own
 operators. No external engines, binaries or third-party libraries.
 
+Licensed under GPL v3.0 or later.
+
 ## Features
 
 - **UDIM grid layout** — choose the tile count along U and V (1×1, 2×2, 4×1,

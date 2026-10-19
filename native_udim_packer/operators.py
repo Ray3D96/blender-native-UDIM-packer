@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The user-facing operator and its settings.
 
 Settings live in a :class:`PropertyGroup` on the ``WindowManager``

@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Tile assignment and global-scale search for the hybrid packing engine.
 
 The actual per-tile placement is done by Blender's built-in

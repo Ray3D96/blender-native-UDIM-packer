@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: GPL-2.0-or-later
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Pure-bmesh UV island utilities for Blender 5.x.
 
 Blender 5.x removed ``bmesh.from_object``; edit-mode geometry is accessed with
