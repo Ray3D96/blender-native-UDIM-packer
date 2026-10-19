@@ -21,7 +21,7 @@ def check(name, cond, detail=""):
 
 
 # ---------------------------------------------------------------- install --
-ZPATH = "/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.2.1.zip"
+ZPATH = "/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.3.0.zip"
 r = bpy.ops.preferences.addon_install(filepath=ZPATH)
 check("install from zip", r == {'FINISHED'}, str(r))
 bpy.ops.preferences.addon_enable(module="native_udim_packer")
@@ -49,9 +49,9 @@ _A.register()
 
 has_op = hasattr(bpy.ops.native_udim, "pack_to_grid")
 check("operator registered", has_op)
-check("release version is 0.2.1", tuple(_A.bl_info["version"]) == (0, 2, 1),
+check("release version is 0.3.0", tuple(_A.bl_info["version"]) == (0, 3, 0),
       str(tuple(_A.bl_info["version"])))
-check("VERSION string for panel stamp", _A.VERSION == "0.2.1", _A.VERSION)
+check("VERSION string for panel stamp", _A.VERSION == "0.3.0", _A.VERSION)
 
 # Settings must be a persistent PropertyGroup on the window manager - the
 # only pattern whose widgets are interactive in Blender 5.x (widgets bound
@@ -60,10 +60,11 @@ _wm_settings = bpy.context.window_manager.native_udim
 check("T0 wm settings group registered with defaults",
       int(_wm_settings.udim_x) == 2 and int(_wm_settings.udim_y) == 2
       and _wm_settings.rotate_90 is True and _wm_settings.use_selected is True
+      and _wm_settings.pack_selected_islands is False
       and abs(float(_wm_settings.margin) - 0.005) < 1e-9,
       f"x={_wm_settings.udim_x} y={_wm_settings.udim_y} "
       f"rot={_wm_settings.rotate_90} sel={_wm_settings.use_selected} "
-      f"margin={_wm_settings.margin}")
+      f"psi={_wm_settings.pack_selected_islands} margin={_wm_settings.margin}")
 # Persist the enabled state so a fresh launch of this install auto-loads it.
 bpy.ops.wm.save_userpref()
 
@@ -838,6 +839,150 @@ check("T17 bottleneck axis maxed out at the margin limit",
       not over17 and max_ext17 >= 1.0 - 1e-3,
       f"max_extent={max_ext17:.5f} K={K17}")
 
+# --- Test 18: pack selected islands only (statics as obstacles) -----------
+# Select 6 of the fixture's 18 islands in the UV editor and run
+# selected-islands mode: exactly those 6 are packed into a 2x2 grid, the
+# other 12 keep their UVs byte-for-byte AND act as fixed obstacles the new
+# layout must avoid (audited by the same zero-overlap raster check).
+clean_scene()
+ob18 = make_test_object("t18")
+me18 = ob18.data
+
+# Pre-pack per-face UV snapshot (object mode, mesh data).
+bm_pre = bmesh.new()
+bm_pre.from_mesh(me18)
+uvl_pre = bm_pre.loops.layers.uv.active
+pre_face_uv18 = {}
+for f in tuple(bm_pre.faces):
+    pre_face_uv18[f.index] = [(l[uvl_pre].uv.x, l[uvl_pre].uv.y)
+                              for l in tuple(f.loops)]
+bm_pre.free()
+
+# Enter edit mode and select the 6 largest islands by UV area - face-level
+# uv_select flags, exactly what a click in ISLANDS mode produces in 5.x.
+bpy.ops.object.select_all(action='DESELECT')
+ob18.select_set(True)
+bpy.context.view_layer.objects.active = ob18
+bpy.ops.object.mode_set(mode='EDIT')
+bm18 = bmesh.from_edit_mesh(me18)
+uvl_bm18 = bm18.loops.layers.uv.active
+islands18 = P.detect_islands(bm18, uvl_bm18)
+picked18 = sorted(islands18, key=lambda i: -i.uv_area)[:6]
+want_faces18 = set()
+for isl in picked18:
+    want_faces18 |= isl.face_indices
+for f in tuple(bm18.faces):
+    f.uv_select = (f.index in want_faces18)
+n_sel_faces18 = sum(1 for f in tuple(bm18.faces) if f.uv_select)
+bmesh.update_edit_mesh(me18)
+bm18.free()
+
+r18 = P.pack_objects([ob18], 2, 2, False, True, 0.01, selected_islands=True)
+check("T18 packs exactly the 6 selected islands",
+      "error" not in r18 and r18.get("packed_islands") == 6
+      and r18.get("untouched_islands") == len(islands18) - 6,
+      f"err={r18.get('error')} packed={r18.get('packed_islands')} "
+      f"untouched={r18.get('untouched_islands')} total={len(islands18)}")
+
+# Back in edit mode (started there); the mesh holds the final layout.
+bmchk = bmesh.from_edit_mesh(me18)
+uvl_chk = bmchk.loops.layers.uv.active
+bad_static18 = 0
+for f in tuple(bmchk.faces):
+    if f.index in want_faces18:
+        continue
+    now = [(l[uvl_chk].uv.x, l[uvl_chk].uv.y) for l in tuple(f.loops)]
+    if now != pre_face_uv18[f.index]:
+        bad_static18 += 1
+bmchk.free()
+check("T18 untouched islands byte-identical", bad_static18 == 0,
+      f"changed_faces={bad_static18}")
+
+ok18, res18 = audit(ob18, 2, 2)
+check("T18 packed + static layout: containment and zero overlap", ok18,
+      f"all_inside={res18['all_inside']}")
+
+# The 6 picked islands must survive as intact single-tile islands (no
+# splitting/merging by the pack), and the original UV selection must be
+# restored face-for-face.
+bmchk = bmesh.from_edit_mesh(me18)
+uvl_chk = bmchk.loops.layers.uv.active
+post_islands18 = P.detect_islands(bmchk, uvl_chk)
+intact18 = True
+detail18t = []
+for isl in picked18:
+    match = [pi for pi in post_islands18 if pi.face_indices == isl.face_indices]
+    if len(match) != 1:
+        intact18 = False
+        continue
+    m = match[0]
+    minx, miny, maxx, maxy = (m.min_uv[0], m.min_uv[1],
+                              m.max_uv[0], m.max_uv[1])
+    tu = math.floor(minx + 1e-4)
+    tv = math.floor(miny + 1e-4)
+    single = (maxx - minx < 1.0 - 2e-4 and maxy - miny < 1.0 - 2e-4
+              and math.floor(maxx - 1e-4) == tu
+              and math.floor(maxy - 1e-4) == tv)
+    if not single:
+        intact18 = False
+    detail18t.append((tu, tv))
+check("T18 each selected island intact inside one unit tile", intact18,
+      f"tiles={detail18t}")
+
+sel_ok18 = True
+n_sel_now18 = 0
+for f in tuple(bmchk.faces):
+    if f.uv_select:
+        n_sel_now18 += 1
+    if f.uv_select != (f.index in want_faces18):
+        sel_ok18 = False
+bmchk.free()
+check("T18 original UV selection restored after packing",
+      sel_ok18 and n_sel_now18 == n_sel_faces18,
+      f"sel_faces={n_sel_now18}/{n_sel_faces18}")
+
+# --- Test 19: selected-islands error paths ---------------------------------
+# (a) option on in object mode: no live selection exists -> clean error,
+#     nothing touched.  (b) edit mode with zero selected faces -> clean
+#     "nothing selected" error, still in edit mode, UVs untouched.
+if bpy.context.mode == 'EDIT_MESH':
+    bpy.ops.object.mode_set(mode='OBJECT')
+pre19 = [(d.uv.x, d.uv.y) for d in me18.uv_layers.active.data]
+r19a = P.pack_objects([ob18], 2, 2, False, True, 0.01, selected_islands=True)
+check("T19a object mode + option -> clean error, nothing changed",
+      "error" in r19a and bpy.context.mode == 'OBJECT'
+      and pre19 == [(d.uv.x, d.uv.y) for d in me18.uv_layers.active.data],
+      str(r19a.get("error")))
+
+bpy.ops.object.select_all(action='DESELECT')
+ob18.select_set(True)
+bpy.context.view_layer.objects.active = ob18
+bpy.ops.object.mode_set(mode='EDIT')
+# Deselect everything in the UV editor: the op (user-facing action) plus an
+# explicit bmesh clear so the zero-selection state is guaranteed regardless
+# of toolsettings.
+try:
+    bpy.ops.uv.select_all(action='DESELECT')
+except Exception as exc:  # noqa: BLE001
+    print(f"    (uv.select_all DESELECT unavailable: {exc})")
+bmz = bmesh.from_edit_mesh(me18)
+for f in tuple(bmz.faces):
+    f.uv_select = False
+bmesh.update_edit_mesh(me18)
+bmz.free()
+r19b = P.pack_objects([ob18], 2, 2, False, True, 0.01, selected_islands=True)
+# Blender 5.x reads the mesh UV-layer data as EMPTY while an edit session is
+# live (UVs sit in the edit bmesh until committed), so first record that we
+# are back in edit mode, then read the committed UVs via a temporary
+# object-mode round trip.
+still_edit19 = bpy.context.mode == 'EDIT_MESH'
+bpy.ops.object.mode_set(mode='OBJECT')
+post19 = [(d.uv.x, d.uv.y) for d in me18.uv_layers.active.data]
+check("T19b zero selected islands -> clean error, still in edit, UVs intact",
+      "error" in r19b and "selected" in str(r19b["error"]).lower()
+      and still_edit19 and pre19 == post19,
+      str(r19b.get("error")))
+
 # --- Test 11: panel draw() headless crash guard ----------------------------
 # Blender 5.x raises AttributeError when draw() assigns attributes to the
 # object returned by layout.operator() (e.g. op.text = ...), aborting the
@@ -849,7 +994,8 @@ class _MockSettings:
     def __init__(self):
         object.__setattr__(self, "_vals", {
             "udim_x": 2, "udim_y": 2, "normalize_scale": False,
-            "rotate_90": True, "margin": 0.01, "use_selected": True})
+            "rotate_90": True, "margin": 0.01, "use_selected": True,
+            "pack_selected_islands": False})
 
     def __getattr__(self, name):
         vals = object.__getattribute__(self, "_vals")
@@ -938,7 +1084,7 @@ except Exception as exc:  # noqa: BLE001 - report any draw-time failure
 bound = _MockLayoutElem.BINDINGS
 to_settings = all(p is _settings for p, _ in bound)
 check("T11 widgets bind to wm settings (not the op proxy)",
-      len(bound) >= 6 and to_settings,
+      len(bound) >= 7 and to_settings,
       f"bindings={len(bound)} all_to_settings={to_settings}")
 
 # ---------------------------------------------------------------- summary --

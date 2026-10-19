@@ -276,7 +276,7 @@ def polygons_overlap(polys_a, polys_b):
     return False
 
 
-def tile_islands_overlap(tile_polys):
+def tile_islands_overlap(tile_polys, static_flags=None):
     """True iff any two distinct islands in ``tile_polys`` overlap with
     positive area - the same semantics as :func:`polygons_overlap`, but
     for a whole tile at once.
@@ -289,6 +289,11 @@ def tile_islands_overlap(tile_polys):
     whose islands contain thousands of faces.  Every candidate pair still
     goes through the exact predicate, so the result is identical to the
     blind pairwise comparison.
+
+    ``static_flags`` (optional, one bool per island) marks islands that
+    are fixed pre-existing content (selected-islands mode).  Pairs where
+    BOTH sides are static are skipped: any overlap there predates this
+    pack and must not make the new layout infeasible.
     """
     n_isl = len(tile_polys)
     if n_isl < 2:
@@ -349,6 +354,9 @@ def tile_islands_overlap(tile_polys):
                 fb = faces[bucket[b]]
                 if ia == fb[4]:
                     continue          # same island: disjoint faces
+                if (static_flags is not None and static_flags[ia]
+                        and static_flags[fb[4]]):
+                    continue          # both pre-existing statics
                 if (fa[2] < fb[0] - _EPS or fb[2] < fa[0] - _EPS or
                         fa[3] < fb[1] - _EPS or fb[3] < fa[1] - _EPS):
                     continue          # AABBs apart -> polygons apart

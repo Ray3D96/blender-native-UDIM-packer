@@ -68,6 +68,7 @@ class NATIVE_UDIM_PT_main(Panel):
         col.prop(settings, "rotate_90")
         col.prop(settings, "margin")
         col.prop(settings, "use_selected")
+        col.prop(settings, "pack_selected_islands")
 
 
 def register():

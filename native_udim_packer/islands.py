@@ -148,3 +148,25 @@ def detect_islands(bm, uvl) -> list[Island]:
         ))
     return islands
 
+
+def selected_island_faces(bm, uvl) -> set[int]:
+    """Face indices of every island that has at least one UV-selected face.
+
+    Blender 5.x stores UV-editor selection as a per-face ``uv_select`` flag
+    on the edit bmesh (the pre-5 loop-level select flags are gone), so an
+    island counts as selected when ANY of its faces carries it: clicking in
+    ISLANDS mode selects all of an island's faces, and a partial (box/face)
+    selection still selects the whole island, because islands are atomic
+    packing units - they can never be split across tiles.  Must run on a
+    live edit bmesh; selection flags do not exist in object mode.
+    """
+    islands = detect_islands(bm, uvl)
+    face_by_index = {f.index: f for f in tuple(bm.faces)}
+    sel: set[int] = set()
+    for isl in islands:
+        for fi in isl.face_indices:
+            if face_by_index[fi].uv_select:
+                sel |= isl.face_indices
+                break
+    return sel
+

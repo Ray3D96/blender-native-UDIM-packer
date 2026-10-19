@@ -72,7 +72,7 @@ operators. No external engines, binaries or third-party libraries.
 
 1. In Blender open **Edit → Preferences → Add-ons** (or *Extensions* in the
    new-style UI).
-2. Click **Install from Disk…** and select `native_udim_packer-0.2.1.zip`
+2. Click **Install from Disk…** and select `native_udim_packer-0.3.0.zip`
    (or unzip it and point the installer at the `native_udim_packer` folder).
 3. Enable **Native UDIM Packer**.
 
@@ -85,7 +85,7 @@ Preferences.
 > installing. Two ways to verify which build is actually running: the panel
 > shows a `version x.y.z` stamp at the top of the UDIM tab, and the addon
 > prints `Native UDIM Packer v<version> registered` to the console on
-> startup (this release: **0.2.1**).
+> startup (this release: **0.3.0**).
 
 ## Usage
 
@@ -108,9 +108,31 @@ Preferences.
    | **Allow 90° Rotation** | Let the built-in packer rotate individual islands by 90° when that saves space. |
    | **Margin**        | Gap kept between islands and around tile edges, as a fraction of one tile (0.01 = 1%). |
    | **Selected Objects** | Pack all selected meshes; off = active object only.                   |
+   | **Pack Selected Islands** | Pack only the UV islands you have selected in the UV editor; every other island keeps its UVs exactly and is treated as an obstacle the new layout avoids (see below). |
 
 5. Click **Pack to UDIM Grid**. The status bar reports how many islands were
    packed into which tiles/UDIMs. Undo with `Ctrl+Z`.
+
+### Packing only selected islands
+
+*Pack Selected Islands* repacks just the islands you picked in the UV editor,
+leaving everything else exactly where it is — handy for fixing one crowded
+region without disturbing a layout that already works:
+
+1. Enter **Edit mode** (multi-edit with several objects) and select islands
+   in the UV editor — click them in *Islands* selection mode or box-select.
+   An island counts as selected when at least one of its faces is selected,
+   so a partial selection still moves the whole island.
+2. Enable **Pack Selected Islands** and click **Pack to UDIM Grid**. Only the
+   selected islands are packed (sequential tile filling as usual); *Normalize
+   Scale* in this mode equalizes texel density over the selected set only.
+3. Untouched islands act as fixed obstacles: every search round and the final
+   growth pass verify against them with the same exact overlap test used for
+   packed islands, so the result never overlaps — if the free space is too
+   small, the engine shrinks the content instead of colliding.
+4. Afterwards you are back in edit mode with your original UV selection
+   restored. Running the option in object mode (no live selection) or with
+   nothing selected reports a clear error and changes nothing.
 
 ### Quick example
 
@@ -136,7 +158,8 @@ three tiles (UDIMs 1001, 1002, 1003) set X = 3, Y = 1; for a vertical stack
    The factors are only *computed* here — nothing is applied yet, so they can
    never be disturbed by a later rescale.
 3. **Sequential tile assignment** — *all* target objects' islands are pooled
-   and sorted largest-first (first-fit-decreasing). Each island goes to the
+   (or only the selected ones, in *Pack Selected Islands* mode) and sorted
+   largest-first (first-fit-decreasing). Each island goes to the
    **earliest** tile that still accepts it: an empty tile always accepts an
    island whose bounding box spans at most one tile interior; a used tile
    accepts while its assigned area stays below the current load target
@@ -236,6 +259,19 @@ by Blender's own packer.
 
 ## Changelog
 
+- **0.3.0** — new option *Pack Selected Islands*: pack only the UV islands
+  selected in the UV editor (an island counts as selected when at least one
+  of its faces is selected); every other island keeps its UVs exactly. In
+  this mode the unselected islands are fixed obstacles: every scale-search
+  round and the final re-center/growth pass verify the packed content
+  against them with the same exact overlap test used for packed islands —
+  the growth factor is bisected down to the largest clean value, and if even
+  the pure re-centering translation would collide, no transform is applied
+  at all. *Normalize Scale* equalizes texel density over the selected set
+  only. Needs a live selection: running the option in object mode, or with
+  nothing selected, reports a clear error and changes nothing; on exit the
+  original UV selection is restored. The result dict additionally reports
+  `packed_islands` / `untouched_islands`.
 - **0.2.1** — final re-center + growth pass. After the scale search finishes,
   each used tile's content is re-centered on its tile center; when headroom
   remains inside the margin box, every tile is then scaled by one global

@@ -1,0 +1,39 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.3.0 registered
+Native UDIM Packer v0.3.0 registered
+=== case 1: _capture_edit_selection in multi-edit ===
+  capturing rpa mode=EDIT
+  -> faces=0 loops=0
+  capturing rpB mode=EDIT
+  -> faces=0 loops=0
+case1 OK
+=== case 2: selected_islands pack, single-object edit ===
+  islands=18
+  uv_selected faces=6
+Traceback (most recent call last):
+  File "/mnt/fusion/ai-projects/blender-uv-packer/.scratch/repro_capture.py", line 94, in <module>
+    r = P.pack_objects([a], 2, 2, False, True, 0.01, selected_islands=True)
+  File "/mnt/fusion/ai-projects/blender-uv-packer/native_udim_packer/packer.py", line 875, in pack_objects
+    S_final, assign_final, rounds, feasible = _layout_solve(
+                                              ~~~~~~~~~~~~~^
+        items, grid_x, grid_y, margin, oracle)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/fusion/ai-projects/blender-uv-packer/native_udim_packer/layout.py", line 469, in solve
+    extents = oracle(a, S)
+  File "/mnt/fusion/ai-projects/blender-uv-packer/native_udim_packer/packer.py", line 871, in oracle
+    return _execute_round(state, assign, positions, S, rotate_90,
+                          margin, static_polys)
+  File "/mnt/fusion/ai-projects/blender-uv-packer/native_udim_packer/packer.py", line 477, in _execute_round
+    if _tile_islands_overlap(tile_polys):
+       ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/mnt/fusion/ai-projects/blender-uv-packer/native_udim_packer/layout.py", line 301, in tile_islands_overlap
+    bb = _poly_bbox(p)
+  File "/mnt/fusion/ai-projects/blender-uv-packer/native_udim_packer/layout.py", line 199, in _poly_bbox
+    xs = [p[0] for p in poly]
+          ~^^^
+TypeError: 'float' object is not subscriptable
+case2 FAILED
+REPRO-DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

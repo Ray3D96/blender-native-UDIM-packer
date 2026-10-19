@@ -71,6 +71,7 @@ import bmesh
 from .islands import (
     Island,
     detect_islands,
+    selected_island_faces,
 )
 from .layout import Item as _LayoutItem
 from .layout import PackRefusedError as _PackRefusedError
@@ -207,8 +208,16 @@ def _exit_edit() -> None:
 
 
 def _finish(started_in_edit: bool, saved_selection: list, original_active,
-            toolsettings: dict | None = None) -> None:
-    """Restore the selection (and edit mode) as found before packing."""
+            toolsettings: dict | None = None,
+            uv_selection: dict | None = None) -> None:
+    """Restore the selection (and edit mode) as found before packing.
+
+    ``uv_selection`` maps object name to the face indices that carried the
+    UV-editor selection flag when packing started; the per-tile pack
+    sessions clobber face/UV selection, so the original UV selection is
+    re-applied once we are back in (multi-)edit mode.  Face indices are
+    stable because packing never changes topology.
+    """
     bpy.ops.object.select_all(action='DESELECT')
     for name in saved_selection:
         ob = bpy.data.objects.get(name)
@@ -226,6 +235,22 @@ def _finish(started_in_edit: bool, saved_selection: list, original_active,
                 bpy.ops.object.mode_set(mode='EDIT')
             except RuntimeError:
                 pass
+        if uv_selection:
+            for name, want in uv_selection.items():
+                ob = bpy.data.objects.get(name)
+                if ob is None or ob.mode != 'EDIT':
+                    continue
+                try:
+                    bm = bmesh.from_edit_mesh(ob.data)
+                except RuntimeError:
+                    continue
+                try:
+                    want_set = set(want)
+                    for f in tuple(bm.faces):
+                        f.uv_select = (f.index in want_set)
+                    bmesh.update_edit_mesh(ob.data)
+                finally:
+                    bm.free()
     if toolsettings is not None:
         ts = bpy.context.scene.tool_settings
         for key, val in toolsettings.items():
@@ -251,6 +276,33 @@ def _detect_object(ob):
         bm.free()
 
 
+def _capture_edit_selection(ob):
+    """(selected-island face set, UV-selected face indices) from a live edit.
+
+    Blender 5.x keeps UV-editor selection in per-face ``uv_select`` flags on
+    the edit bmesh - they are discarded when the session is exited - so this
+    must run while ``ob`` is still in an edit session (callers check
+    ``ob.mode == 'EDIT'`` first; otherwise ``bmesh.from_edit_mesh`` raises
+    RuntimeError).  The first value expands the selection to whole islands
+    (the packing granularity); the second keeps the raw selected faces so
+    the exact pre-pack selection can be restored.  Returns ``(None, None)``
+    when the object has no UV layer.
+    """
+    me = ob.data
+    if me.uv_layers is None or len(me.uv_layers) == 0:
+        return None, None
+    bm = bmesh.from_edit_mesh(me)
+    try:
+        uvl = bm.loops.layers.uv.active
+        if uvl is None:
+            return None, None
+        faces = selected_island_faces(bm, uvl)
+        raw = [f.index for f in tuple(bm.faces) if f.uv_select]
+        return faces, raw
+    finally:
+        bm.free()
+
+
 def _snapshot_uv(me) -> dict[int, list]:
     """Original UVs per face: ``{face_index: [(x, y), ...]}`` in loop order.
 
@@ -271,7 +323,8 @@ def _snapshot_uv(me) -> dict[int, list]:
 # --------------------------------------------------------------------------
 
 def _execute_round(state: list, assign: dict, positions: list, S: float,
-                   rotate_90: bool, margin: float) -> list:
+                   rotate_90: bool, margin: float,
+                   static_polys: list | None = None) -> list:
     """Place every island at global scale ``S`` (native per-tile packing).
 
     Each used tile is packed with exactly one ``uv.pack_islands`` call,
@@ -279,6 +332,12 @@ def _execute_round(state: list, assign: dict, positions: list, S: float,
     contributes islands to the tile; the native packer therefore places
     all of a tile's islands - from all objects - together, so cross-
     object overlap in shared tiles is impossible.
+
+    ``static_polys`` (selected-islands mode) is a list of the untouched
+    islands, each a list of its face polygons in global UV space: they
+    never move, but packed content must not land on top of them, so each
+    tile's exact overlap check also verifies against them (shifted into
+    that tile's local 0..1 space).
 
     Returns measured post-pack extents per used tile as a list indexed by
     row-major tile position (``None`` for unused tiles), in 0..1 UV space
@@ -407,11 +466,28 @@ def _execute_round(state: list, assign: dict, positions: list, S: float,
                     if assign[i._item_index] != t:
                         continue
                     tile_polys.append([fp[fi] for fi in i.face_indices])
-            if _tile_islands_overlap(tile_polys):
+            static_flags: list[bool] | None = None
+            if static_polys:
+                # Untouched islands are fixed obstacles.  Their polygons sit
+                # in global UV space, so shift them into this tile's local
+                # 0..1 space and verify the packed content against them as
+                # well (the grid-hash check ignores far-away cells).  Each
+                # static island is one entry, flagged static, so its own
+                # adjacent faces are never compared against each other and
+                # pre-existing static-vs-static overlaps cannot make this
+                # round infeasible.
+                tu_s, tv_s = positions[t]
+                static_flags = [False] * len(tile_polys)
+                for isl_polys in static_polys:
+                    tile_polys.append(
+                        [[(x - tu_s, y - tv_s) for (x, y) in poly]
+                         for poly in isl_polys])
+                    static_flags.append(True)
+            if _tile_islands_overlap(tile_polys, static_flags):
                 raise _PackRefusedError(
                     f"uv.pack_islands produced overlapping islands in tile "
                     f"{udim_number(*positions[t])} at this scale; the "
-                    f"content is too large for the tile")
+                    f"content is too large for the free space")
 
             if tu != 0 or tv != 0:
                 for s in members:
@@ -442,7 +518,7 @@ def _execute_round(state: list, assign: dict, positions: list, S: float,
 
 
 def _stretch_final_layout(state: list, assign_final: dict, positions: list,
-                          margin: float) -> float:
+                          margin: float, static_polys: list | None = None) -> float:
     """Re-center each used tile's content and grow it by one global factor.
 
     Every tile is re-centered on its tile center, and - when any headroom
@@ -452,7 +528,16 @@ def _stretch_final_layout(state: list, assign_final: dict, positions: list,
     factor keeps texel density equal across UDIMs.  Per tile this is one
     similarity transform - re-centering plus scaling about the content's
     bbox center - which preserves all relative geometry inside the tile and
-    therefore cannot create any new overlap.
+    therefore cannot create any new overlap among the packed islands.
+
+    When ``static_polys`` (selected-islands mode) are present, growing a
+    tile can push its packed content into the fixed, untouched islands that
+    share the tile; those collisions grow monotonically with the factor, so
+    candidate factors are verified against the static polygons and the
+    largest clean one is kept (bisection), with one exact final gate before
+    anything is written.  If even the pure re-centering translation collides,
+    no transform is applied at all - the pre-stretch layout was already
+    verified clean in the final search round.
 
     Note that ``uv.pack_islands`` treats its margin as island-to-island
     spacing, not as a boundary offset: a dense packing can legitimately span
@@ -506,15 +591,97 @@ def _stretch_final_layout(state: list, assign_final: dict, positions: list,
     local_extents = {t: [bb[0] - positions[t][0], bb[1] - positions[t][1],
                          bb[2] - positions[t][0], bb[3] - positions[t][1]]
                      for t, bb in bboxes.items()}
-    K = _final_growth_factor(local_extents, margin)
+    K_max = _final_growth_factor(local_extents, margin)
+
+    centers = {t: [(bb[0] + bb[2]) * 0.5, (bb[1] + bb[3]) * 0.5]
+               for t, bb in bboxes.items()}
+
+    if static_polys:
+        # Packed-vs-packed stays clean under the per-tile similarity
+        # transform; only packed-vs-static collisions can appear, and they
+        # grow monotonically with the factor.  Read every packed face's UVs
+        # once (linked-duplicate mesh data is read a single time - counting
+        # it twice would make identical polygons "overlap" themselves),
+        # then verify candidate factors against the fixed content.
+        face_uvs: dict[str, dict[int, list]] = {}
+        seen_data = set()
+        for s in state:
+            ob = s["ob"]
+            did = id(ob.data)
+            if did in seen_data:
+                continue
+            seen_data.add(did)
+            fmap = face_tile[ob.name]
+            bm = bmesh.new()
+            bm.from_mesh(ob.data)
+            try:
+                uvl = bm.loops.layers.uv.active
+                fuvs: dict[int, list] = {}
+                for f in tuple(bm.faces):
+                    if fmap.get(f.index) is None:
+                        continue
+                    fuvs[f.index] = [(l[uvl].uv.x, l[uvl].uv.y)
+                                     for l in tuple(f.loops)]
+                face_uvs[ob.name] = fuvs
+            finally:
+                bm.free()
+
+        def candidate_ok(Kc: float) -> bool:
+            for t in bboxes:
+                tu, tv = positions[t]
+                cx, cy = centers[t]
+                px, py = tu + 0.5, tv + 0.5
+                polys: list[list] = []
+                for s in state:
+                    fuvs = face_uvs.get(s["ob"].name)
+                    if not fuvs:
+                        continue
+                    fmap = face_tile[s["ob"].name]
+                    # One entry per packed island (all of its faces share a
+                    # tile) so adjacent faces are never self-compared.
+                    for i in s["islands"]:
+                        fis = [fi for fi in i.face_indices if fi in fuvs]
+                        if not fis or fmap[fis[0]] != t:
+                            continue
+                        polys.append(
+                            [[(px + (x - cx) * Kc,
+                               py + (y - cy) * Kc)
+                              for (x, y) in fuvs[fi]]
+                             for fi in fis])
+                static_flags: list[bool] | None = None
+                if static_polys:
+                    static_flags = [False] * len(polys)
+                    for isl_polys in static_polys:
+                        polys.append(
+                            [[(x - tu, y - tv) for (x, y) in poly]
+                             for poly in isl_polys])
+                        static_flags.append(True)
+                if _tile_islands_overlap(polys, static_flags):
+                    return False
+            return True
+
+        if not candidate_ok(1.0):
+            # Even the pure re-centering translation collides with fixed
+            # content: leave the verified pre-stretch layout untouched.
+            return 1.0
+        lo, hi = 1.0, K_max
+        for _ in range(24):
+            if hi - lo <= 1e-5:
+                break
+            mid = (lo + hi) * 0.5
+            if candidate_ok(mid):
+                lo = mid
+            else:
+                hi = mid
+        K = lo if candidate_ok(lo) else 1.0
+    else:
+        K = K_max
 
     # Apply one similarity transform per used tile: content center -> tile
     # center, scaled by K.  uv' = tile_center + (uv - content_center) * K
     # With K == 1.0 this is the pure re-centering translation; it is always
     # applied so every used tile carries balanced margins around its
     # content, even when no growth is possible.
-    centers = {t: [(bb[0] + bb[2]) * 0.5, (bb[1] + bb[3]) * 0.5]
-               for t, bb in bboxes.items()}
     written_meshes = set()
     for s in state:
         ob = s["ob"]
@@ -578,8 +745,15 @@ def _restore_snapshots(state: list) -> None:
 
 def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
                  normalize_scale: bool = False, rotate_90: bool = True,
-                 margin: float = 0.01) -> dict:
+                 margin: float = 0.01, selected_islands: bool = False) -> dict:
     """Pack the UV islands of ``objects`` into a UDIM grid.
+
+    With ``selected_islands=True`` only the islands that are currently
+    selected in the UV editor are packed (an island counts as selected when
+    at least one of its faces is selected); every other island keeps its
+    UVs exactly and acts as an obstacle the packed content must avoid.
+    This mode needs a live selection, so it must be started from (multi-)
+    edit mode - running it in object mode returns an error.
 
     Returns a result dict (see operator/README) or ``{"error": ...}``.
     On any failure the original UVs are restored before returning.
@@ -596,6 +770,30 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
                        and bpy.context.object.mode == 'EDIT')
     saved_selection = [o.name for o in bpy.context.selected_objects]
     original_active = bpy.context.view_layer.objects.active
+
+    if selected_islands and not started_in_edit:
+        # UV selection flags only exist inside a live edit session, so
+        # there is nothing to select against in object mode.  No state has
+        # been touched yet - just report.
+        return {"error": ("pack-selected-islands needs a live UV selection: "
+                          "enter the UV editor, select islands, then run "
+                          "the operator"),
+                "objects": {}, "errors": {}}
+
+    # Selected-islands mode: read the edit-bmesh selection NOW - it is
+    # discarded the moment the session is exited below.  Objects that are
+    # not part of the current edit session (single-object edit with other
+    # targets) simply contribute no selected islands.
+    sel_faces_by_obj: dict[str, set] = {}
+    uv_selection: dict[str, list] = {}
+    if selected_islands and started_in_edit:
+        for ob in objects:
+            if ob.mode == 'EDIT':
+                faces, raw_faces = _capture_edit_selection(ob)
+                if faces is not None:
+                    sel_faces_by_obj[ob.name] = faces
+                    uv_selection[ob.name] = raw_faces
+
     if started_in_edit:
         bpy.ops.object.mode_set(mode='OBJECT')
 
@@ -625,9 +823,34 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
         state.append({"ob": ob, "islands": islands})
     if not state:
         _finish(started_in_edit, saved_selection, original_active,
-                toolsettings=saved_toolsettings)
+                toolsettings=saved_toolsettings, uv_selection=uv_selection)
         return {"error": "no UV islands found on any target object",
                 "objects": {}, "errors": errors}
+
+    # Selected-islands mode: keep only the islands touched by the UV
+    # selection; everything else stays where it is (and becomes an obstacle
+    # for the overlap checks below).  With normalize on, texel density is
+    # equalized over the packed set only - the untouched islands keep their
+    # existing scale.
+    static_polys: list | None = None
+    if selected_islands:
+        packed_total = 0
+        for s in state:
+            sf = sel_faces_by_obj.get(s["ob"].name, set())
+            kept = [i for i in s["islands"] if i.face_indices & sf]
+            s["untouched_count"] = len(s["islands"]) - len(kept)
+            # Kept for the static-obstacle grouping below: the islands that
+            # stay where they are, still whole.
+            s["static_islands"] = [i for i in s["islands"]
+                                   if not (i.face_indices & sf)]
+            s["islands"] = kept
+            packed_total += len(kept)
+        if packed_total == 0:
+            _finish(started_in_edit, saved_selection, original_active,
+                    toolsettings=saved_toolsettings,
+                    uv_selection=uv_selection)
+            return {"error": "no UV islands selected in the UV editor",
+                    "objects": {}, "errors": errors}
 
     all_islands = [i for s in state for i in s["islands"]]
     if normalize_scale:
@@ -645,11 +868,33 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
     for s in state:
         s["snapshot"] = _snapshot_uv(s["ob"].data)
 
+    if selected_islands:
+        # Untouched islands never move: their polygons (original UVs) are
+        # fixed obstacles for every overlap check below.  Grouped per island
+        # (a list of its face polygons, global UV space) so that adjacent
+        # faces of one static island are never compared against each other.
+        # Mesh data shared by linked duplicates is counted once.
+        static_polys = []
+        seen_data = set()
+        for s in state:
+            ob = s["ob"]
+            did = id(ob.data)
+            if did in seen_data:
+                continue
+            seen_data.add(did)
+            snap = s["snapshot"]
+            for isl in s.get("static_islands", []):
+                polys = [list(snap[fi]) for fi in isl.face_indices
+                         if fi in snap]
+                if polys:
+                    static_polys.append(polys)
+
     # 3) scale search with the native-pack oracle ----------------------
     positions = _tile_order(grid_x, grid_y)
 
     def oracle(assign: dict, S: float) -> list:
-        return _execute_round(state, assign, positions, S, rotate_90, margin)
+        return _execute_round(state, assign, positions, S, rotate_90,
+                              margin, static_polys)
 
     try:
         S_final, assign_final, rounds, feasible = _layout_solve(
@@ -657,21 +902,24 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
     except RuntimeError as exc:
         _restore_snapshots(state)
         _finish(started_in_edit, saved_selection, original_active,
-                toolsettings=saved_toolsettings)
+                toolsettings=saved_toolsettings, uv_selection=uv_selection)
         return {"error": str(exc), "objects": {}, "errors": errors}
     if not feasible:
         _restore_snapshots(state)
         _finish(started_in_edit, saved_selection, original_active,
-                toolsettings=saved_toolsettings)
+                toolsettings=saved_toolsettings, uv_selection=uv_selection)
         return {"error": "scale search did not converge", "objects": {},
                 "errors": errors}
 
     # 3b) re-center + global growth: the final round always leaves slack in
     #     the tiles; grow every tile by one uniform factor (limited by the
     #     tightest tile/axis) to maximize texel density.  One similarity
-    #     transform per tile, so no new overlaps are possible and the exact
-    #     verification of the final round stays valid.
-    stretch = _stretch_final_layout(state, assign_final, positions, margin)
+    #     transform per tile, so no new overlaps are possible among the
+    #     packed islands and the exact verification of the final round stays
+    #     valid; in selected-islands mode the growth factor is additionally
+    #     verified against the untouched (static) content before writing.
+    stretch = _stretch_final_layout(state, assign_final, positions, margin,
+                                    static_polys)
 
     # 4) report ---------------------------------------------------------
     used_set = set(assign_final.values())
@@ -694,7 +942,7 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
 
     # The mesh now holds the final placement; restore the user's state.
     _finish(started_in_edit, saved_selection, original_active,
-            toolsettings=saved_toolsettings)
+            toolsettings=saved_toolsettings, uv_selection=uv_selection)
 
     return {
         "objects": results,
@@ -707,15 +955,19 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
         "global_scale": S_final * stretch,
         "stretch_factor": stretch,
         "tiles_used_total": [positions[t] for t in sorted(used_set)],
+        "packed_islands": sum(len(s["islands"]) for s in state),
+        "untouched_islands": (sum(s.get("untouched_count", 0)
+                                  for s in state)
+                              if selected_islands else 0),
     }
 
 
 def pack_object(ob, grid_x: int = 2, grid_y: int = 2,
                 normalize_scale: bool = False, rotate_90: bool = True,
-                margin: float = 0.01) -> dict:
+                margin: float = 0.01, selected_islands: bool = False) -> dict:
     """Convenience wrapper: pack a single object."""
     return pack_objects([ob], grid_x, grid_y, normalize_scale, rotate_90,
-                        margin)
+                        margin, selected_islands=selected_islands)
 
 
 def verify_packing(ob, grid_x: int, grid_y: int) -> dict:

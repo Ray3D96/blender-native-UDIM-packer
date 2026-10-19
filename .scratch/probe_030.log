@@ -1,0 +1,21 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.3.0 registered
+uv layer: UVMap
+len(bm.loops): EXC TypeError: object of type 'BMLoopSeq' has no len()
+dir(BMLoopSeq): ['layers']
+bm.loops[0] type: EXC TypeError: 'BMLoopSeq' object is not subscriptable
+BMLoop attrs: ['calc_angle', 'calc_normal', 'calc_tangent', 'copy_from', 'copy_from_face_interp', 'edge', 'face', 'index', 'is_convex', 'is_valid', 'link_loop_next', 'link_loop_prev', 'link_loop_radial_next', 'link_loop_radial_prev', 'link_loops', 'tag', 'uv_select_edge', 'uv_select_edge_set', 'uv_select_vert', 'uv_select_vert_set', 'vert']
+BMFace attrs: ['calc_area', 'calc_center_bounds', 'calc_center_median', 'calc_center_median_weighted', 'calc_perimeter', 'calc_tangent_edge', 'calc_tangent_edge_diagonal', 'calc_tangent_edge_pair', 'calc_tangent_vert_diagonal', 'copy', 'copy_from', 'copy_from_face_interp', 'edges', 'hide', 'hide_set', 'index', 'is_valid', 'loops', 'material_index', 'normal', 'normal_flip', 'normal_update', 'select', 'select_set', 'smooth', 'tag', 'uv_select', 'uv_select_set', 'verts']
+BMElem base select?: False
+RNA BMLoop props: EXC AttributeError: 'module' object has no attribute 'BMLoop'
+RNA BMFace props: EXC AttributeError: 'module' object has no attribute 'BMFace'
+f.select read: True
+face select set OK
+uv.select_all OK
+uv.island_select EXC AttributeError: Calling operator "bpy.ops.uv.island_select" error, could not be found
+face selects after ops: [True, True, True, True, True, True]
+loop attr candidates: []
+PROBE-DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

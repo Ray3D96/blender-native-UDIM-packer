@@ -1,0 +1,87 @@
+00:00.264  blend            | Writing user preferences: "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/config/userpref.blend" 
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.3.0 registered
+reloading addon meta-data: native_udim_packer '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/__init__.py' (time-stamp change detected)
+Modules Installed () from '/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.3.0.zip' into '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons'
+Info: Modules Installed () from '/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.3.0.zip' into '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons'
+[PASS] install from zip  ({'FINISHED'})
+module changed on disk: '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/__init__.py' reloading...
+Native UDIM Packer v0.3.0 registered
+[PASS] addon enabled
+Native UDIM Packer v0.3.0 registered
+[PASS] operator registered
+[PASS] release version is 0.3.0  ((0, 3, 0))
+[PASS] VERSION string for panel stamp  (0.3.0)
+[PASS] T0 wm settings group registered with defaults  (x=2 y=2 rot=True sel=True psi=False margin=0.004999999888241291)
+Info: Preferences saved
+[PASS] T0 monkey: independent flood fill finds 5 real islands  (islands=5 faces/island=[318, 59, 59, 32, 32])
+[PASS] T0 monkey: detect_islands matches ground-truth partition exactly  (detect=5 vs truth=5 faces/detect=[318, 59, 59, 32, 32])
+[PASS] T0 monkey: islands are multi-face (no per-face shattering)  (max faces/island=318)
+Info: t1: 18 islands → 3 tiles (1001, 1011, 1002)
+[PASS] T1 operator FINISHED  ({'FINISHED'})
+[PASS] T1 all islands inside tiles (2x2)  (islands=18 tiles=[(0, 0), (0, 1), (1, 0)])
+[PASS] T1 uses <=4 tiles
+Info: t2: 18 islands → 1 tiles (1001)
+[PASS] T2 all islands inside [0,1]^2  (islands=18)
+Info: t3: 18 islands → 3 tiles (1001, 1002, 1003)
+[PASS] T3 all islands inside tiles (4x1)  (islands=18 tiles=[(0, 0), (1, 0), (2, 0)])
+Info: t4off: 18 islands → 3 tiles (1001, 1002, 1003)
+Info: t4on: 18 islands → 3 tiles (1001, 1002, 1003)
+[PASS] T4 normalize tightens texel density  (spread on=1.00 off=1.26)
+Info: t5a: 18 islands → 4 tiles (1001, 1011, 1002, 1012) | t5b: 6 islands → 2 tiles (1001, 1002) | note: 2 tile(s) are shared by several objects; their islands were co-packed so nothing overlaps between objects
+[PASS] T5 both objects packed into grid  (a:18 b:6)
+[PASS] T5 no cross-object UV overlap  (cross pairs=0)
+[PASS] T6 single-tile engine pack fits [0,1]^2  (islands=18)
+[PASS] T6 no AABB overlaps in single-tile pack  (n=18)
+[PASS] T6b over-capacity pack fits [0,1]^2 (uniform shrink)  (islands=18 scale=0.34427001582680133)
+Info: t7: 18 islands → 3 tiles (1001, 1011, 1002)
+[PASS] T7 rotate=off packs validly  (islands=18)
+Info: t8: 12 islands → 6 tiles (1001, 1011, 1002, 1012, 1003, 1013)
+[PASS] T8 3x2 pack valid (containment + no overlap)  (islands=12 tiles=[(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)])
+[PASS] T8 all 6 tiles used  (tiles=[(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)])
+[PASS] T9 in multi-edit with 2 objects  (mode=EDIT_MESH sel=['t9a', 't9b'])
+Info: t9a: 18 islands → 4 tiles (1001, 1011, 1002, 1012) | t9b: 6 islands → 2 tiles (1001, 1002) | note: 2 tile(s) are shared by several objects; their islands were co-packed so nothing overlaps between objects
+[PASS] T9 operator FINISHED from multi-edit  ({'FINISHED'})
+[PASS] T9 both objects packed from edit mode  (a:18 b:6 cross=0)
+[PASS] T9 islands span multiple UDIMs  (tiles=[(0, 0), (0, 1), (1, 0), (1, 1)])
+[PASS] T9 returned to edit mode with selection restored  (mode=EDIT_MESH sel=['t9a', 't9b'] active=t9a)
+[PASS] T10 udim_number spec: X row  (1001,1003,1010)
+[PASS] T10 udim_number spec: Y rows  (1011,1021)
+[PASS] T10 monkey pre-pack: 5 intact islands  (islands=5 faces=[318, 59, 59, 32, 32])
+Info: Suzanne: 5 islands → 1 tiles (1001)
+[PASS] T10 operator FINISHED (3x1)  ({'FINISHED'})
+[PASS] T10 island count preserved after pack (no cutting/shattering)  (pre=5 post=5 faces/post=[318, 59, 59, 32, 32])
+[PASS] T10 all islands inside their tiles (3x1)  (islands=5)
+[PASS] T10 X=3 fills UDIMs sequentially from 1001  (udims=[1001])
+Info: Suzanne: 5 islands → 1 tiles (1001)
+[PASS] T10 operator FINISHED (1x3)  ({'FINISHED'})
+[PASS] T10 Y=3 fills UDIMs sequentially from 1001  (udims=[1001])
+Info: t12: 18 islands → 3 tiles (1001, 1011, 1002)
+[PASS] T12 pack preserves relative texel densities (normalize off)  (before=1.258413 after=1.258414)
+Info: t13: 18 islands → 3 tiles (1001, 1011, 1002)
+[PASS] T13 normalize gives uniform texel density (single object)  (spread=1.000001)
+Info: t13a: 18 islands → 4 tiles (1001, 1011, 1002, 1012) | t13b: 6 islands → 3 tiles (1001, 1011, 1002) | note: 3 tile(s) are shared by several objects; their islands were co-packed so nothing overlaps between objects
+[PASS] T13 normalize equalizes density ACROSS objects  (cross-object spread=1.000001 (a:18 b:6))
+[PASS] T14 tiles filled sequentially (prefix, earlier >= later)  (fills={(1, 0): 0.814, (0, 0): 0.815, (0, 1): 0.698} S*=1.7443869356655826)
+[PASS] T14 content grew to use the grid (S* >= 1)  (S*=1.7443869356655826)
+[PASS] T15 zero overlap (512^2 raster audit, all islands)  (conflict_pixels=0 worst=None)
+[PASS] T16 content re-centered in every used tile  (tile_fracs={(1, 0): (1.004, 1.005), (0, 0): (1.005, 1.005), (0, 1): (0.908, 0.942)})
+[PASS] T16 no tile exceeds its boundary after the stretch pass  (tile_fracs={(1, 0): (1.004, 1.005), (0, 0): (1.005, 1.005), (0, 1): (0.908, 0.942)})
+[PASS] T16 bottleneck axis at or beyond its margin limit  (max_frac=1.00490 K=1.0)
+[PASS] T17 global growth applied (stretch factor > 1)  (K=1.005025000401358 S*=1.777501842287131)
+[PASS] T17 grown content re-centered in every used tile  (tile_extents={(1, 0): (0.999, 1.0), (0, 0): (1.0, 1.0), (0, 1): (0.897, 0.931)})
+[PASS] T17 bottleneck axis maxed out at the margin limit  (max_extent=1.00000 K=1.005025000401358)
+[PASS] T18 packs exactly the 6 selected islands  (err=None packed=6 untouched=12 total=18)
+[PASS] T18 untouched islands byte-identical  (changed_faces=0)
+[PASS] T18 packed + static layout: containment and zero overlap  (all_inside=True)
+[PASS] T18 each selected island intact inside one unit tile  (tiles=[(1, 0), (0, 0), (0, 0), (1, 0), (0, 1), (0, 1)])
+[PASS] T18 original UV selection restored after packing  (sel_faces=6/6)
+[PASS] T19a object mode + option -> clean error, nothing changed  (pack-selected-islands needs a live UV selection: enter the UV editor, select islands, then run the operator)
+DBG T19b: context.object=t18 context.mode=EDIT_MESH ob18.mode=EDIT uv_eq=False err='no UV islands selected in the UV editor'
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+[FAIL] T19b zero selected islands -> clean error, still in edit, UVs intact  (no UV islands selected in the UV editor)
+[PASS] T11 panel draw() completes without exception (5.x-safe)
+[PASS] T11 widgets bind to wm settings (not the op proxy)  (bindings=7 all_to_settings=True)
+
+SUMMARY: 57/58 passed
+  FAILED: T19b zero selected islands -> clean error, still in edit, UVs intact (no UV islands selected in the UV editor)

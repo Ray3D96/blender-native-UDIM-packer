@@ -1,0 +1,102 @@
+00:00.277  blend            | Writing user preferences: "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/config/userpref.blend" 
+Traceback (most recent call last):
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/operators.py", line 145, in execute
+    res = packer.pack_objects(
+        targets, grid_x, grid_y,
+    ...<3 lines>...
+        selected_islands=bool(s.pack_selected_islands),
+    )
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/packer.py", line 769, in pack_objects
+    faces, loops = _capture_edit_selection(ob)
+                   ~~~~~~~~~~~~~~~~~~~~~~~^^^^
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/packer.py", line 295, in _capture_edit_selection
+    faces = selected_island_faces(bm, uvl)
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/islands.py", line 166, in selected_island_faces
+    if any(l.select for l in tuple(bm.faces[fi].loops)):
+       ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/islands.py", line 166, in <genexpr>
+    if any(l.select for l in tuple(bm.faces[fi].loops)):
+           ^^^^^^^^
+AttributeError: 'BMLoop' object has no attribute 'select'
+03:00.593  bpy.rna          | ERROR Python script error in NATIVE_UDIM_OT_pack_to_grid.execute
+Traceback (most recent call last):
+  File "/mnt/fusion/ai-projects/blender-uv-packer/.scratch/e2e_test.py", line 505, in <module>
+    r = bpy.ops.native_udim.pack_to_grid()
+RuntimeError: Error: Python: Traceback (most recent call last):
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/operators.py", line 145, in execute
+    res = packer.pack_objects(
+        targets, grid_x, grid_y,
+    ...<3 lines>...
+        selected_islands=bool(s.pack_selected_islands),
+    )
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/packer.py", line 769, in pack_objects
+    faces, loops = _capture_edit_selection(ob)
+                   ~~~~~~~~~~~~~~~~~~~~~~~^^^^
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/packer.py", line 295, in _capture_edit_selection
+    faces = selected_island_faces(bm, uvl)
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/islands.py", line 166, in selected_island_faces
+    if any(l.select for l in tuple(bm.faces[fi].loops)):
+       ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/islands.py", line 166, in <genexpr>
+    if any(l.select for l in tuple(bm.faces[fi].loops)):
+           ^^^^^^^^
+AttributeError: 'BMLoop' object has no attribute 'select'
+Location: /mnt/fusion/ai-projects/blender-uv-packer/.scratch/e2e_test.py:505
+
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.2.1 registered
+reloading addon meta-data: native_udim_packer '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/__init__.py' (time-stamp change detected)
+Modules Installed () from '/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.3.0.zip' into '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons'
+Info: Modules Installed () from '/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.3.0.zip' into '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons'
+[PASS] install from zip  ({'FINISHED'})
+module changed on disk: '/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/__init__.py' reloading...
+Native UDIM Packer v0.3.0 registered
+[PASS] addon enabled
+Native UDIM Packer v0.3.0 registered
+[PASS] operator registered
+[PASS] release version is 0.3.0  ((0, 3, 0))
+[PASS] VERSION string for panel stamp  (0.3.0)
+[PASS] T0 wm settings group registered with defaults  (x=2 y=2 rot=True sel=True psi=False margin=0.004999999888241291)
+Info: Preferences saved
+[PASS] T0 monkey: independent flood fill finds 5 real islands  (islands=5 faces/island=[318, 59, 59, 32, 32])
+[PASS] T0 monkey: detect_islands matches ground-truth partition exactly  (detect=5 vs truth=5 faces/detect=[318, 59, 59, 32, 32])
+[PASS] T0 monkey: islands are multi-face (no per-face shattering)  (max faces/island=318)
+Info: t1: 18 islands → 3 tiles (1001, 1011, 1002)
+[PASS] T1 operator FINISHED  ({'FINISHED'})
+[PASS] T1 all islands inside tiles (2x2)  (islands=18 tiles=[(0, 0), (0, 1), (1, 0)])
+[PASS] T1 uses <=4 tiles
+Info: t2: 18 islands → 1 tiles (1001)
+[PASS] T2 all islands inside [0,1]^2  (islands=18)
+Info: t3: 18 islands → 3 tiles (1001, 1002, 1003)
+[PASS] T3 all islands inside tiles (4x1)  (islands=18 tiles=[(0, 0), (1, 0), (2, 0)])
+Info: t4off: 18 islands → 3 tiles (1001, 1002, 1003)
+Info: t4on: 18 islands → 3 tiles (1001, 1002, 1003)
+[PASS] T4 normalize tightens texel density  (spread on=1.00 off=1.26)
+Info: t5a: 18 islands → 4 tiles (1001, 1011, 1002, 1012) | t5b: 6 islands → 2 tiles (1001, 1002) | note: 2 tile(s) are shared by several objects; their islands were co-packed so nothing overlaps between objects
+[PASS] T5 both objects packed into grid  (a:18 b:6)
+[PASS] T5 no cross-object UV overlap  (cross pairs=0)
+[PASS] T6 single-tile engine pack fits [0,1]^2  (islands=18)
+[PASS] T6 no AABB overlaps in single-tile pack  (n=18)
+[PASS] T6b over-capacity pack fits [0,1]^2 (uniform shrink)  (islands=18 scale=0.34427001582680133)
+Info: t7: 18 islands → 3 tiles (1001, 1011, 1002)
+[PASS] T7 rotate=off packs validly  (islands=18)
+Info: t8: 12 islands → 6 tiles (1001, 1011, 1002, 1012, 1003, 1013)
+[PASS] T8 3x2 pack valid (containment + no overlap)  (islands=12 tiles=[(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)])
+[PASS] T8 all 6 tiles used  (tiles=[(0, 0), (0, 1), (1, 0), (1, 1), (2, 0), (2, 1)])
+[PASS] T9 in multi-edit with 2 objects  (mode=EDIT_MESH sel=['t9a', 't9b'])
+Error: Python: Traceback (most recent call last):
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/operators.py", line 145, in execute
+    res = packer.pack_objects(
+        targets, grid_x, grid_y,
+    ...<3 lines>...
+        selected_islands=bool(s.pack_selected_islands),
+    )
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/packer.py", line 769, in pack_objects
+    faces, loops = _capture_edit_selection(ob)
+                   ~~~~~~~~~~~~~~~~~~~~~~~^^^^
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/packer.py", line 295, in _capture_edit_selection
+    faces = selected_island_faces(bm, uvl)
+  File "/mnt/fusion/ai-projects/blender-uv-packer/blender-5.2.2-linux-x64/portable/scripts/addons/native_udim_packer/islands.py", line 166, in selected_island_faces
+    if any(l.select for l in... truncatedBlender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

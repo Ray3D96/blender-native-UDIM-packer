@@ -1,0 +1,12 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.3.0 registered
+VERIFY modules at startup: ['native_udim_packer.islands', 'native_udim_packer.layout', 'native_udim_packer.packer', 'native_udim_packer.operators', 'native_udim_packer.ui', 'native_udim_packer']
+VERIFY enabled-in-prefs: True
+VERIFY version: (0, 3, 0) 0.3.0
+VERIFY operator registered: True
+VERIFY wm settings: NATIVE_UDIM_PG_settings x=2 y=2 rot=True margin=0.004999999888241291 sel=True
+VERIFY monkey islands: 5 sizes: [318, 59, 59, 32, 32]
+VERIFY RESULT: OK
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

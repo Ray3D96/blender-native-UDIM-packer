@@ -1,0 +1,28 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.3.0 registered
+Native UDIM Packer v0.3.0 registered
+=== case 1: _capture_edit_selection in multi-edit ===
+  capturing rpa mode=EDIT
+Traceback (most recent call last):
+  File "/mnt/fusion/ai-projects/blender-uv-packer/.scratch/repro_capture.py", line 64, in <module>
+    r = P._capture_edit_selection(ob)
+  File "/mnt/fusion/ai-projects/blender-uv-packer/native_udim_packer/packer.py", line 297, in _capture_edit_selection
+    faces = selected_island_faces(bm, uvl)
+  File "/mnt/fusion/ai-projects/blender-uv-packer/native_udim_packer/islands.py", line 166, in selected_island_faces
+    if any(l.select for l in tuple(bm.faces[fi].loops)):
+       ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/fusion/ai-projects/blender-uv-packer/native_udim_packer/islands.py", line 166, in <genexpr>
+    if any(l.select for l in tuple(bm.faces[fi].loops)):
+           ^^^^^^^^
+AttributeError: 'BMLoop' object has no attribute 'select'
+case1 FAILED
+=== case 2: selected_islands pack, single-object edit ===
+  islands=18
+Traceback (most recent call last):
+  File "/mnt/fusion/ai-projects/blender-uv-packer/.scratch/repro_capture.py", line 90, in <module>
+    l.select = s
+    ^^^^^^^^
+AttributeError: 'BMLoop' object has no attribute 'select' and no __dict__ for setting new attributes
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

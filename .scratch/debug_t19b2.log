@@ -1,0 +1,20 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.3.0 registered
+Native UDIM Packer v0.3.0 registered
+register_class(...):
+Info: Registering operator class: 'NATIVE_UDIM_OT_pack_to_grid', bl_idname 'native_udim.pack_to_grid' has been registered before, unregistering previous
+register_class(...):
+Info: Registering panel class: 'NATIVE_UDIM_PT_main', bl_idname 'NATIVE_UDIM_PT_main' has been registered before, unregistering previous
+pre-T19a: layers=['UVMap'] active=UVMap loops=108
+in-edit: layers=['UVMap'] active=UVMap loops=0
+uv.select_all DESELECT ok
+after-op: layers=['UVMap'] active=UVMap loops=0
+after-clear: layers=['UVMap'] active=UVMap loops=0
+Traceback (most recent call last):
+  File "/mnt/fusion/ai-projects/blender-uv-packer/.scratch/debug_t19b2.py", line 83, in <module>
+    r = P.pack_objects([ob], 2, 2, False, True, 0.01, selected_islands=True)
+        ^^^^^^^^^^^^^^
+AttributeError: module 'native_udim_packer' has no attribute 'pack_objects'
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

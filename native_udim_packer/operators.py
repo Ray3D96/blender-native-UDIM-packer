@@ -77,6 +77,17 @@ class NATIVE_UDIM_PG_settings(PropertyGroup):
         ),
         default=True,
     )
+    pack_selected_islands: BoolProperty(
+        name="Pack Selected Islands",
+        description=(
+            "Pack only the UV islands that are selected in the UV editor "
+            "(an island counts as selected when at least one of its faces "
+            "is); every other island keeps its UVs and is treated as an "
+            "obstacle the new layout avoids. Needs a live selection: enter "
+            "the UV editor, select islands, then run the operator"
+        ),
+        default=False,
+    )
 
 
 class NATIVE_UDIM_OT_pack_to_grid(Operator):
@@ -136,6 +147,7 @@ class NATIVE_UDIM_OT_pack_to_grid(Operator):
                 normalize_scale=bool(s.normalize_scale),
                 rotate_90=bool(s.rotate_90),
                 margin=float(s.margin),
+                selected_islands=bool(s.pack_selected_islands),
             )
         except RuntimeError as exc:
             self.report({'ERROR'}, f"Native UDIM: {exc}")
@@ -154,6 +166,9 @@ class NATIVE_UDIM_OT_pack_to_grid(Operator):
                 f"{name}: {st['islands']} islands → {len(st['tiles_used'])} tiles "
                 f"({udim_list}{more})"
             )
+        if res.get("untouched_islands"):
+            lines.append(
+                f"{res['untouched_islands']} unselected island(s) left in place")
         for name, msg in res.get("errors", {}).items():
             lines.append(f"{name}: {msg}")
         if res["shared_tiles"]:
