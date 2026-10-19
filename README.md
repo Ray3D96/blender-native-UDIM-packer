@@ -1,4 +1,4 @@
-# blender-uv-packer
+# blender-native-UDIM-packer
 
 Repository for the **Native UDIM Packer** Blender addon: packs UV islands of
 the selected objects into a user-defined UDIM tile grid, 100% natively
