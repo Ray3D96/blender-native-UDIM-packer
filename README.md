@@ -5,6 +5,15 @@ the selected objects into a user-defined UDIM tile grid, 100% natively
 (`bpy` / `bmesh` / built-in operators only). Target platform: **Blender 5.2+**
 (developed and tested on 5.2.2 LTS).
 
+## AI Disclosure
+
+Made using Local AI: Qwen 3.8-27B UD_Q6_K_M, Deepseek Harness.
+
+This project was designed, implemented, and tested with the assistance of a
+locally-run model (no cloud services). A human set the requirements, drove
+testing in live Blender sessions, and made all release decisions; the full
+source is available under GPL v3.0 or later for review.
+
 ## Layout
 
 | Path | What it is |
