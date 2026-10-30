@@ -1,0 +1,29 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.3.0 registered
+Native UDIM Packer v0.3.0 registered
+
+=== cube-2x2 ===
+  ok  cube-2x2 packed
+  ok  cube-2x2 Cube inside
+  scale=1.5053 stretch=1.0002 tiles=[(0, 0), (1, 0)] islands=6
+
+=== monkey-uneven ===
+  ok  monkey-uneven packed
+  ok  monkey-uneven Suzanne inside
+  scale=0.4035 stretch=1.0000 tiles=[(0, 0)] islands=100
+
+=== monkey-uneven-norm ===
+  ok  monkey-uneven-norm packed
+  ok  monkey-uneven-norm Suzanne inside
+  scale=0.7530 stretch=1.0005 tiles=[(0, 0), (1, 0), (0, 1), (1, 1)] islands=100
+
+=== selected-islands ===
+  ok  selected-islands packed
+  ok  selected-islands Cube inside
+  ok  selected-islands Icosphere inside
+  scale=3.0800 stretch=1.0000 tiles=[(1, 0), (0, 1)] islands=2
+  ok  selected-islands leaves the other object untouched
+  ok  selected-islands packed count
+
+SMOKE FAIL=0
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)

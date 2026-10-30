@@ -1,0 +1,232 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.3.0 registered
+Native UDIM Packer v0.3.0 registered
+
+##### UV SPHERE #####
+
+=== sphere-2x2 polys=512 ===
+    measured S=1.88385 tiles=3 worst=1.1297 n=3
+    measured S=1.88385 tiles=3 worst=1.1059 n=3
+    measured S=1.68643 tiles=3 worst=1.1021 n=3
+    measured S=1.68643 tiles=3 worst=1.0092 n=3
+    measured S=1.68643 tiles=3 worst=1.0092 n=3
+    measured S=1.68643 tiles=3 worst=0.9876 n=3
+  SOLVED S=1.68643 rounds=6 calls={'calls': 6, 'refuse': 0, 'extent': 6, 'fit': 0}
+  result error: None islands 6 tiles [(0, 0), (1, 0), (0, 1)]
+
+=== sphere-1x1 polys=512 ===
+    measured S=1.11240 tiles=1 worst=1.0916 n=1
+    measured S=1.11240 tiles=1 worst=1.0916 n=1
+    measured S=1.00888 tiles=1 worst=0.9900 n=1
+  SOLVED S=1.00888 rounds=11 calls={'calls': 3, 'refuse': 0, 'extent': 3, 'fit': 0}
+  result error: None islands 6 tiles [(0, 0)]
+
+##### TORUS #####
+
+=== torus-2x2 polys=768 ===
+    measured S=1.97151 tiles=4 worst=0.9810 n=4
+  SOLVED S=1.97151 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 10 tiles [(0, 0), (1, 0), (0, 1), (1, 1)]
+
+##### 4 MONKEYS #####
+
+=== 4monkeys-2x2 polys=2000 ===
+    measured S=3.81236 tiles=4 worst=1.0594 n=4
+    measured S=3.81236 tiles=4 worst=0.9731 n=4
+  SOLVED S=3.81236 rounds=11 calls={'calls': 2, 'refuse': 0, 'extent': 2, 'fit': 0}
+  result error: None islands 400 tiles [(0, 0), (1, 0), (0, 1), (1, 1)]
+
+##### QA BLEND #####
+00:12.885  blend            | Read blend: "/mnt/fusion/ai-projects/blender-uv-packer/QA_Test_Files/P_BLENDER_01.5.blend"
+  objects: [('Axel', 1634), ('BallBearings', 4096), ('Base', 2690), ('BladeAxel', 4361), ('BladeAxel.001', 4361), ('BladesA', 696), ('BladesA.001', 696), ('BladesB', 696), ('BladesB.001', 696), ('BladesC', 696), ('BladesC.001', 696), ('ContainerHandle', 1822), ('ContainerHandlePlastic', 954), ('ContainerInnerBase', 968), ('ContainerLegs', 504), ('ContainerMain', 5092), ('DrainLid', 1266), ('Feet', 208), ('Handle', 1218), ('InnerSpinBase', 800), ('InnerSpinBase.001', 800), ('Lid', 5025), ('LogoPlate', 64), ('Mount', 3052), ('Plug', 1116), ('PlugEnd', 578), ('PlugMetal', 954), ('ReleaseButton', 101), ('RubberPads', 368), ('RubberSeals', 507), ('Spinner', 3905), ('SpinStablizer', 356), ('Wire', 1312), ('WireEnd', 161), ('WireSocket', 418)]
+
+=== qa:Axel polys=1634 ===
+    measured S=4.83368 tiles=2 worst=1.0390 n=2
+    measured S=4.83368 tiles=2 worst=0.9972 n=2
+    measured S=4.83368 tiles=2 worst=0.9911 n=2
+  SOLVED S=4.83368 rounds=1 calls={'calls': 3, 'refuse': 0, 'extent': 3, 'fit': 0}
+  result error: None islands 15 tiles [(0, 0), (1, 0)]
+
+=== qa:BallBearings polys=4096 ===
+    measured S=35.27586 tiles=4 worst=0.9390 n=4
+  SOLVED S=35.27586 rounds=12 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 32 tiles [(0, 0), (1, 0), (0, 1), (1, 1)]
+
+=== qa:Base polys=2690 ===
+    measured S=2.27012 tiles=4 worst=1.2597 n=4
+    measured S=1.78416 tiles=3 worst=1.0685 n=3
+    measured S=1.78416 tiles=3 worst=1.0456 n=3
+    measured S=1.78416 tiles=3 worst=1.0465 n=3
+    measured S=1.78416 tiles=4 worst=0.9675 n=4
+  SOLVED S=1.78416 rounds=3 calls={'calls': 5, 'refuse': 0, 'extent': 5, 'fit': 0}
+  result error: None islands 12 tiles [(0, 0), (1, 0), (0, 1), (1, 1)]
+
+=== qa:BladeAxel polys=4361 ===
+    measured S=2.96268 tiles=1 worst=0.9907 n=1
+  SOLVED S=2.96268 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 12 tiles [(0, 0)]
+
+=== qa:BladeAxel.001 polys=4361 ===
+    measured S=2.96268 tiles=1 worst=0.9907 n=1
+  SOLVED S=2.96268 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 12 tiles [(0, 0)]
+
+=== qa:BladesA polys=696 ===
+    measured S=16.85704 tiles=2 worst=0.9906 n=2
+  SOLVED S=16.85704 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 4 tiles [(0, 0), (1, 0)]
+
+=== qa:BladesA.001 polys=696 ===
+    measured S=16.85745 tiles=2 worst=0.9906 n=2
+  SOLVED S=16.85745 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 4 tiles [(0, 0), (1, 0)]
+
+=== qa:BladesB polys=696 ===
+    measured S=16.85733 tiles=2 worst=0.9908 n=2
+  SOLVED S=16.85733 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 4 tiles [(0, 0), (1, 0)]
+
+=== qa:BladesB.001 polys=696 ===
+    measured S=16.85677 tiles=2 worst=0.9908 n=2
+  SOLVED S=16.85677 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 4 tiles [(0, 0), (1, 0)]
+
+=== qa:BladesC polys=696 ===
+    measured S=16.85759 tiles=2 worst=0.9906 n=2
+  SOLVED S=16.85759 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 4 tiles [(0, 0), (1, 0)]
+
+=== qa:BladesC.001 polys=696 ===
+    measured S=16.85772 tiles=2 worst=0.9906 n=2
+  SOLVED S=16.85772 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 4 tiles [(0, 0), (1, 0)]
+
+=== qa:ContainerHandle polys=1822 ===
+    measured S=2.83982 tiles=1 worst=0.9904 n=1
+  SOLVED S=2.83982 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 6 tiles [(0, 0)]
+
+=== qa:ContainerHandlePlastic polys=954 ===
+    measured S=2.81236 tiles=1 worst=0.9903 n=1
+  SOLVED S=2.81236 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 2 tiles [(0, 0)]
+
+=== qa:ContainerInnerBase polys=968 ===
+    measured S=1.56209 tiles=1 worst=0.9906 n=1
+  SOLVED S=1.56209 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 8 tiles [(0, 0)]
+
+=== qa:ContainerLegs polys=504 ===
+    measured S=6.35764 tiles=4 worst=0.9904 n=4
+  SOLVED S=6.35764 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 4 tiles [(0, 0), (1, 0), (0, 1), (1, 1)]
+
+=== qa:ContainerMain polys=5092 ===
+    measured S=1.17280 tiles=2 worst=0.9908 n=2
+  SOLVED S=1.17280 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 12 tiles [(0, 0), (1, 0)]
+
+=== qa:DrainLid polys=1266 ===
+    measured S=8.51421 tiles=4 worst=0.9919 n=4
+  SOLVED S=8.51421 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 8 tiles [(0, 0), (1, 0), (0, 1), (1, 1)]
+
+=== qa:Feet polys=208 ===
+    measured S=8.31738 tiles=4 worst=1.0808 n=4
+    measured S=7.61891 tiles=4 worst=0.9906 n=4
+  SOLVED S=7.61891 rounds=3 calls={'calls': 2, 'refuse': 0, 'extent': 2, 'fit': 0}
+  result error: None islands 8 tiles [(0, 0), (1, 0), (0, 1), (1, 1)]
+
+=== qa:Handle polys=1218 ===
+    measured S=2.42379 tiles=1 worst=0.9910 n=1
+  SOLVED S=2.42379 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 13 tiles [(0, 0)]
+
+=== qa:InnerSpinBase polys=800 ===
+    measured S=9.95405 tiles=1 worst=0.9904 n=1
+  SOLVED S=9.95405 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 2 tiles [(0, 0)]
+
+=== qa:InnerSpinBase.001 polys=800 ===
+    measured S=9.95400 tiles=1 worst=0.9904 n=1
+  SOLVED S=9.95400 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 2 tiles [(0, 0)]
+
+=== qa:Lid polys=5025 ===
+    measured S=1.82040 tiles=2 worst=1.1786 n=2
+    measured S=1.82040 tiles=2 worst=1.1031 n=2
+    measured S=1.82040 tiles=2 worst=0.9909 n=2
+  SOLVED S=1.82040 rounds=1 calls={'calls': 3, 'refuse': 0, 'extent': 3, 'fit': 0}
+  result error: None islands 13 tiles [(0, 0), (1, 0)]
+
+=== qa:LogoPlate polys=64 ===
+    measured S=8.64778 tiles=1 worst=0.9914 n=1
+  SOLVED S=8.64778 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 5 tiles [(0, 0)]
+
+=== qa:Mount polys=3052 ===
+    measured S=1.75231 tiles=1 worst=0.9910 n=1
+  SOLVED S=1.75231 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 20 tiles [(0, 0)]
+
+=== qa:Plug polys=1116 ===
+    measured S=11.58156 tiles=2 worst=0.9920 n=2
+  SOLVED S=11.58156 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 5 tiles [(0, 0), (1, 0)]
+
+=== qa:PlugEnd polys=578 ===
+    measured S=22.67588 tiles=1 worst=0.9907 n=1
+  SOLVED S=22.67588 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 3 tiles [(0, 0)]
+
+=== qa:PlugMetal polys=954 ===
+    measured S=29.04236 tiles=2 worst=1.0042 n=2
+    measured S=29.04236 tiles=2 worst=1.0021 n=2
+    measured S=29.04236 tiles=2 worst=0.9910 n=2
+  SOLVED S=29.04236 rounds=1 calls={'calls': 3, 'refuse': 0, 'extent': 3, 'fit': 0}
+  result error: None islands 12 tiles [(0, 0), (1, 0)]
+
+=== qa:ReleaseButton polys=101 ===
+    measured S=15.45243 tiles=1 worst=0.9903 n=1
+  SOLVED S=15.45243 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 1 tiles [(0, 0)]
+
+=== qa:RubberPads polys=368 ===
+    measured S=12.46348 tiles=2 worst=0.9904 n=2
+  SOLVED S=12.46348 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 2 tiles [(0, 0), (1, 0)]
+
+=== qa:RubberSeals polys=507 ===
+    measured S=2.13541 tiles=1 worst=0.9901 n=1
+  SOLVED S=2.13541 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 2 tiles [(0, 0)]
+
+=== qa:Spinner polys=3905 ===
+    measured S=2.68305 tiles=1 worst=0.9914 n=1
+  SOLVED S=2.68305 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 22 tiles [(0, 0)]
+
+=== qa:SpinStablizer polys=356 ===
+    measured S=20.13940 tiles=2 worst=0.9905 n=2
+  SOLVED S=20.13940 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 2 tiles [(0, 0), (1, 0)]
+
+=== qa:Wire polys=1312 ===
+    measured S=1.00000 tiles=1 worst=0.9901 n=1
+  SOLVED S=1.00000 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 1 tiles [(0, 0)]
+
+=== qa:WireEnd polys=161 ===
+    measured S=15.12727 tiles=1 worst=0.9904 n=1
+  SOLVED S=15.12727 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 2 tiles [(0, 0)]
+
+=== qa:WireSocket polys=418 ===
+    measured S=7.72865 tiles=1 worst=0.9905 n=1
+  SOLVED S=7.72865 rounds=1 calls={'calls': 1, 'refuse': 0, 'extent': 1, 'fit': 0}
+  result error: None islands 6 tiles [(0, 0)]
+
+DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

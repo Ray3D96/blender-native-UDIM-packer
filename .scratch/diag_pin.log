@@ -1,0 +1,15 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.3.0 registered
+pin attrs []
+pin op {'FINISHED'}
+pack {'FINISHED'}
+pinned before []
+pinned after  [(0.3, 0.3), (0.7, 0.3), (0.7, 0.7), (0.3, 0.7)]
+pinned moved True
+mover after [(0.01, 0.71), (0.36, 0.71), (0.36, 1.06), (0.01, 1.06)]
+mover bbox (0.010,0.710)-(0.360,1.060)
+aabb overlap with pin False
+DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

@@ -1,0 +1,74 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.3.0 registered
+Native UDIM Packer v0.3.0 registered
+=== pack_islands RNA ===
+  udim_source: ENUM default=CLOSEST_UDIM CLOSEST_UDIM,ACTIVE_UDIM,ORIGINAL_AABB,CUSTOM_REGION
+  rotate: BOOLEAN default=True
+  rotate_method: ENUM default=ANY ANY,CARDINAL,AXIS_ALIGNED,AXIS_ALIGNED_X,AXIS_ALIGNED_Y
+  scale: BOOLEAN default=True
+  merge_overlap: BOOLEAN default=False
+  margin_method: ENUM default=SCALED SCALED,ADD,FRACTION
+  margin: FLOAT default=0.0010000000474974513
+  pin: BOOLEAN default=False
+  pin_method: ENUM default=LOCKED SCALE,ROTATION,ROTATION_SCALE,LOCKED
+  shape_method: ENUM default=CONCAVE CONCAVE,CONVEX,AABB
+
+##### PACK CASES #####
+
+=== CASE cube-2x2 {'grid_x': 2, 'grid_y': 2, 'margin': 0.005, 'rotate_90': True} ===
+  error: None
+  islands: 6 tiles: [(0, 0), (1, 0)] scale: 1.5184 stretch: 1.0
+  verify Cube: inside=True islands=6
+
+=== CASE cube-1x1 {'grid_x': 1, 'grid_y': 1, 'margin': 0.005, 'rotate_90': True} ===
+  error: None
+  islands: 6 tiles: [(0, 0)] scale: 1.0097 stretch: 1.001
+  verify Cube: inside=True islands=6
+
+=== CASE monkey-2x2 {'grid_x': 2, 'grid_y': 2, 'margin': 0.005, 'rotate_90': True} ===
+  error: None
+  islands: 100 tiles: [(0, 0), (1, 0), (0, 1), (1, 1)] scale: 2.2433 stretch: 1.0021
+  verify Suzanne: inside=True islands=100
+
+=== CASE monkey-1x1 {'grid_x': 1, 'grid_y': 1, 'margin': 0.005, 'rotate_90': True} ===
+  error: None
+  islands: 100 tiles: [(0, 0)] scale: 1.3213 stretch: 1.174
+  verify Suzanne: inside=True islands=100
+
+=== CASE monkey-uneven-2x2 {'grid_x': 2, 'grid_y': 2, 'margin': 0.005, 'rotate_90': True, 'uneven': True} ===
+  error: None
+  islands: 100 tiles: [(0, 0)] scale: 0.538 stretch: 1.0
+  verify Suzanne: inside=True islands=100
+
+=== CASE monkey-uneven-norm {'grid_x': 2, 'grid_y': 2, 'margin': 0.005, 'rotate_90': True, 'uneven': True, 'normalize_scale': True} ===
+  error: None
+  islands: 100 tiles: [(0, 0), (1, 0), (0, 1), (1, 1)] scale: 0.966 stretch: 1.0025
+  verify Suzanne: inside=True islands=100
+
+=== CASE multi-2x2 {'grid_x': 2, 'grid_y': 2, 'margin': 0.005, 'rotate_90': True} ===
+  error: None
+  islands: 18 tiles: [(0, 0), (1, 0), (0, 1)] scale: 1.0096 stretch: 1.0
+  verify Cube: inside=True islands=6
+  verify Cube.001: inside=True islands=6
+  verify Icosphere: inside=True islands=6
+
+=== CASE multi-1x1-norot {'grid_x': 1, 'grid_y': 1, 'margin': 0.02, 'rotate_90': False} ===
+  error: None
+  islands: 18 tiles: [(0, 0)] scale: 0.5637 stretch: 1.0
+  verify Cube: inside=True islands=6
+  verify Cube.001: inside=True islands=6
+  verify Icosphere: inside=True islands=6
+
+##### GRID (per-face islands) #####
+  grid error: None islands 36 scale 2.2516099079561784
+
+##### SCALE=TRUE UNIFORMITY #####
+  before pack scale=True
+  result {'FINISHED'}
+  Plane bbox (0.0010,0.0010)-(0.7254,0.7254) size=(0.7244,0.7244)
+  Plane.001 bbox (0.0010,0.7274)-(0.2726,0.9990) size=(0.2716,0.2716)
+
+DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
+
+Blender quit

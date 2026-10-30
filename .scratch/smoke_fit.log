@@ -1,0 +1,24 @@
+Registering: bl_ext.blender_org.ZenUVChecker
+Native UDIM Packer v0.3.1 registered
+Native UDIM Packer v0.3.1 registered
+
+=== cube-2x2 ===
+  ok  cube-2x2 packed
+  8.12s scale=1.5053 stretch=1.0000 moves=0 tiles=[(0, 0), (1, 0), (0, 1)]
+  ok  cube-2x2 Cube inside
+  ok  cube-2x2 Cube no overlap
+
+=== monkey-2x2 ===
+  ok  monkey-2x2 packed
+  43.89s scale=1.8382 stretch=1.0000 moves=0 tiles=[(0, 0), (1, 0), (0, 1)]
+  ok  monkey-2x2 Suzanne inside
+  ok  monkey-2x2 Suzanne no overlap
+
+=== suzanne-native-3x1 ===
+  ok  suzanne-native-3x1 packed
+  0.74s scale=0.9795 stretch=1.0000 moves=0 tiles=[(0, 0)]
+  ok  suzanne-native-3x1 Suzanne inside
+  ok  suzanne-native-3x1 Suzanne no overlap
+
+SMOKE FAIL=0
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:34:58)
