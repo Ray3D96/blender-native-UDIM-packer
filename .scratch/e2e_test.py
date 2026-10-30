@@ -17,11 +17,11 @@ RESULTS = []
 def check(name, cond, detail=""):
     status = "PASS" if cond else "FAIL"
     RESULTS.append((status, name, detail))
-    print(f"[{status}] {name}" + (f"  ({detail})" if detail else ""))
+    print(f"[{status}] {name}" + (f"  ({detail})" if detail else ""), flush=True)
 
 
 # ---------------------------------------------------------------- install --
-ZPATH = "/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.3.0.zip"
+ZPATH = "/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.3.1.zip"
 r = bpy.ops.preferences.addon_install(filepath=ZPATH)
 check("install from zip", r == {'FINISHED'}, str(r))
 bpy.ops.preferences.addon_enable(module="native_udim_packer")
@@ -49,9 +49,9 @@ _A.register()
 
 has_op = hasattr(bpy.ops.native_udim, "pack_to_grid")
 check("operator registered", has_op)
-check("release version is 0.3.0", tuple(_A.bl_info["version"]) == (0, 3, 0),
+check("release version is 0.3.1", tuple(_A.bl_info["version"]) == (0, 3, 1),
       str(tuple(_A.bl_info["version"])))
-check("VERSION string for panel stamp", _A.VERSION == "0.3.0", _A.VERSION)
+check("VERSION string for panel stamp", _A.VERSION == "0.3.1", _A.VERSION)
 
 # Settings must be a persistent PropertyGroup on the window manager - the
 # only pattern whose widgets are interactive in Blender 5.x (widgets bound
@@ -238,11 +238,33 @@ def count_overlaps(tris_a, tris_b, self_pairs=False):
     return n
 
 
+def _tri_area(tri):
+    a, b, c = tri
+    return abs((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)) * 0.5
+
+
 def _pair_hits(ta, tb):
+    """True when two islands have a positive-area triangle intersection.
+
+    ``intersect_tri_tri_2d`` returns true for a zero-area triangle whose
+    line crosses another triangle's edge even when the segments do not
+    overlap (Suzanne has a collapsed UV face that sits on y=0.5).  Those
+    hits are not overlaps.  A candidate is kept only when the exact
+    polygon test agrees and both triangles have area.
+    """
     import mathutils.geometry as geom
+    from native_udim_packer.layout import polygons_overlap
     for a in ta:
+        if _tri_area(a) < 1e-12:
+            continue
         for b in tb:
-            if geom.intersect_tri_tri_2d(*a, *b):
+            if _tri_area(b) < 1e-12:
+                continue
+            if not geom.intersect_tri_tri_2d(*a, *b):
+                continue
+            pa = [(p.x, p.y) for p in a]
+            pb = [(p.x, p.y) for p in b]
+            if polygons_overlap([pa], [pb]):
                 return True
     return False
 

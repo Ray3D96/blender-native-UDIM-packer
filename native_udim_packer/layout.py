@@ -13,18 +13,21 @@ Python - no bpy import, unit-testable with plain Python:
   tile is generally partially filled - that is exactly what "maximally
   fill the first UDIM" means.
 
-* the single global scale ``S*``.  It is found by a shrinking search:
+* the single global scale ``S*``.  It is found by a bracketed search:
   start at the largest scale where the biggest island still spans one
   tile interior, run the assignment + native packing, and measure each
-  used tile's post-pack extent.  A tile whose content overflows its
-  ``[0, 1-margin]`` bound tells us the content is too big: shrink S in
-  proportion to the measured overflow and retry.  At every scale the
-  assignment is re-tried from greediest filling to sparsest (an "eta
-  ladder"), so the search always returns the greediest tile layout that
-  fits at the highest possible scale - maximum texel density, with the
-  first UDIMs filled before later ones open.  Because the feasibility
-  oracle is the packer itself (not an area estimate), the converged
-  scale is feasible *by measurement* - no overlap can survive.
+  used tile's post-pack extent.  A candidate that overflows, overlaps or
+  is refused drops to a substantially smaller scale (not a 1% creep —
+  that used to burn the whole round budget without ever converging).
+  Once a feasible scale is found, the gap up to the last failure is
+  binary-searched so the result stays close to the maximum that fits.
+  At every scale the assignment is re-tried from greediest filling to
+  sparsest (an "eta ladder"), so the search returns the greediest tile
+  layout that fits at the highest scale it could prove — maximum texel
+  density, with the first UDIMs filled before later ones open.  Because
+  the feasibility oracle is the packer itself (not an area estimate),
+  the converged scale is feasible *by measurement* — no overlap can
+  survive.
 
 The search is deterministic: same islands, same grid, same margin ->
 same result.
@@ -88,7 +91,8 @@ def max_scale(tile_interior: float, items) -> float:
     return tile_interior / md
 
 
-def assign_ffd(items, n_tiles: int, cap: float, eta: float = 0.92) -> dict | None:
+def assign_ffd(items, n_tiles: int, cap: float, eta: float = 0.92,
+                tile_free=None) -> dict | None:
     """Sequential first-fit-decreasing assignment to ``n_tiles`` tiles.
 
     ``cap`` is the tile capacity in reference area units; an island's
@@ -99,12 +103,23 @@ def assign_ffd(items, n_tiles: int, cap: float, eta: float = 0.92) -> dict | Non
     empty tile accepts when the island geometrically fits one interior on
     its own (guaranteed at :func:`max_scale`).
 
+    ``tile_free`` (optional, one value per tile in ``[0, 1]``) is the
+    fraction of that tile not already occupied by fixed islands.  A tile
+    with no free space is skipped, and a partially occupied tile only
+    accepts an island whose area fits in the remaining fraction.  ``None``
+    means every tile is empty (the historical behaviour).
+
     Returns ``{item.index: tile_pos}`` with ``tile_pos`` in row-major
     order (0 = first tile), or ``None`` when no assignment exists at this
     capacity.
     """
     if n_tiles <= 0:
         return {} if not items else None
+    if tile_free is None:
+        free = [1.0] * n_tiles
+    else:
+        free = [float(tile_free[t]) if t < len(tile_free) else 1.0
+                for t in range(n_tiles)]
     sqrt_cap = cap ** 0.5
     order = sorted(items, key=lambda it: (-it.area, -max(it.w, it.h), it.index))
     loads = [0.0] * n_tiles
@@ -113,10 +128,20 @@ def assign_ffd(items, n_tiles: int, cap: float, eta: float = 0.92) -> dict | Non
         a = it.area
         fits_alone = max(it.w, it.h) <= sqrt_cap * (1.0 + 1e-9)
         for t in range(n_tiles):
+            ft = free[t]
+            if ft <= 1e-8:
+                continue
             if loads[t] == 0.0:
                 if not fits_alone:
                     continue
-            elif loads[t] + a > eta * cap:
+                # A full tile still takes the first island on geometry
+                # alone (eta does not apply to an empty tile).  A tile that
+                # already holds fixed content only takes what fits in the
+                # leftover area, so packed islands spill onto later tiles
+                # instead of being stacked on top of obstacles.
+                if ft < 1.0 and a > cap * ft:
+                    continue
+            elif loads[t] + a > eta * cap * ft:
                 continue
             assign[it.index] = t
             loads[t] += a
@@ -431,8 +456,9 @@ def final_growth_factor(extents_by_tile, margin: float) -> float:
 
 
 def solve(items, grid_x: int, grid_y: int, margin: float, oracle,
-          max_rounds: int = 48,
-          etas: tuple[float, ...] = (0.92, 0.85, 0.75, 0.65, 0.5)):
+          max_rounds: int = 24,
+          etas: tuple[float, ...] = (0.92, 0.85, 0.75, 0.65, 0.5),
+          tile_free=None):
     """Run the full assignment + scale search.
 
     ``oracle(assign, S)`` must place every island according to ``assign``
@@ -441,58 +467,120 @@ def solve(items, grid_x: int, grid_y: int, margin: float, oracle,
     each used tile in 0..1 space as a list indexed by row-major tile
     position (``None`` for unused tiles).  The oracle may raise
     :class:`PackRefusedError` when the native packer cancels or produces
-    overlapping islands; that is treated as infeasible without measured
-    extents and answered with a conservative ``S * 0.9`` shrink.
+    overlapping islands; that scale is infeasible.
 
-    The search maximizes the global scale first: it starts at ``S_max``,
-    the largest scale at which the biggest island still spans one tile,
-    and only shrinks when no assignment fits at the current scale.  At
-    every candidate scale it walks a ladder of FFD load targets from
-    greediest to sparsest (``etas``): the greedy filling - "maximally
-    fill the first UDIM before opening the next" - is preferred whenever
-    it still fits at that scale; when it does not, sparser assignments
-    spread the content over more tiles, which is exactly what lets the
-    largest islands stay large when several UDIMs are available.  A tile
-    whose measured extent overflows its ``[0, 1-margin]`` bound yields a
-    proportional shrink; the most optimistic suggestion of the round wins
-    and the search retries from the greedy end of the ladder there.
+    The search maximizes the global scale first.  It starts at ``S_max``,
+    the largest scale at which the biggest island still spans one tile.
+    A failed probe always drops the scale by at least 20 percent — a 1%
+    creep is not used, because a layout that is only slightly over the
+    margin used to consume the whole round budget without ever
+    converging.  Once a feasible scale is found, at most five coarser
+    steps walk back up the bracket (stop within 4 percent).  The final
+    re-center/growth pass recovers leftover margin, so a tighter search
+    is not worth another dozen native packs.  At every candidate scale
+    the FFD load targets are tried from greediest to sparsest (``etas``):
+    the greedy filling ("maximally fill the first UDIM before opening the
+    next") wins whenever it fits; sparser assignments are what let the
+    largest islands stay large when several UDIMs are available.
+
+    ``tile_free`` is forwarded to :func:`assign_ffd` (fixed-island
+    occupancy).  If the last probe was not the winner, that assignment
+    is handed to the oracle once more before returning, so a failed
+    probe cannot be the layout left behind.
 
     Returns ``(S_final, assign_final, rounds_used, feasible)``.  Raises
-    RuntimeError when the search does not converge within ``max_rounds``
-    outer rounds (each round may call the oracle once per ladder entry).
+    RuntimeError when nothing feasible is found within ``max_rounds``
+    probes (each probe may call the oracle once per ladder entry).
     """
     n_tiles = grid_x * grid_y
     interior = max(1.0 - 2.0 * margin, 1e-3)
-    S = max_scale(interior, items)
-    rounds = 0
-    for rnd in range(max_rounds):
-        rounds = rnd + 1
-        cap = (interior / S) ** 2
-        best_next: float | None = None
+    S_max = max_scale(interior, items)
+    any_assign = False
+    # A failed probe must actually move.  Taking the measured 1% overflow
+    # as the next step is what made the old search burn 48 rounds.
+    min_drop = 0.80
+
+    def _try(S: float):
+        """Return ``(assign, None)`` when ``S`` packs, else ``(None, S_next)``.
+
+        ``S_next`` is the smallest scale any ladder entry suggested, and
+        it is never greater than ``S * min_drop``.
+        """
+        nonlocal any_assign
+        cap = (interior / max(S, 1e-9)) ** 2
+        suggested: float | None = None
         for eta in etas:
-            a = assign_ffd(items, n_tiles, cap, eta)
+            a = assign_ffd(items, n_tiles, cap, eta, tile_free)
             if a is None:
                 continue
+            any_assign = True
             try:
                 extents = oracle(a, S)
             except PackRefusedError:
-                # The native packer refused this assignment (silent cancel
-                # or overlapping output).  No measured extents are
-                # available, so fall back to a conservative shrink; sparser
-                # ladder entries and smaller scales are still tried.
-                if best_next is None or S * 0.9 > best_next:
-                    best_next = S * 0.9
+                nxt = S * min_drop
+                suggested = nxt if suggested is None else min(suggested, nxt)
                 continue
-            S_next, feasible = next_scale(S, interior,
-                                          [e for e in extents if e is not None])
+            S_next, feasible = next_scale(
+                S, interior, [e for e in extents if e is not None])
             if feasible:
-                return S, a, rounds, True
-            if best_next is None or S_next > best_next:
-                best_next = S_next
-        if best_next is None:      # defensive: nothing assignable at this cap
-            S *= 0.9
+                return a, None
+            stepped = min(S_next, S * min_drop)
+            suggested = stepped if suggested is None else min(suggested, stepped)
+        if suggested is None:
+            suggested = S * min_drop
+        return None, max(suggested, 1e-6)
+
+    S = S_max
+    best_S = None
+    best_assign = None
+    fail_S = None
+    committed = False
+    rounds = 0
+    for _rnd in range(max(1, max_rounds)):
+        rounds += 1
+        found, nxt = _try(S)
+        if found is not None:
+            best_S, best_assign = S, found
+            committed = True
+            break
+        fail_S = S
+        if nxt is None or nxt >= S * 0.999:
+            nxt = S * min_drop
+        S = max(nxt, 1e-6)
+        if S <= 1e-6:
+            break
+
+    if best_assign is None:
+        if not any_assign:
+            raise RuntimeError(
+                "UDIM pack: islands do not fit in this grid "
+                "(not enough free space)")
+        raise RuntimeError(
+            "UDIM pack: scale search did not converge after "
+            f"{rounds} rounds (S={S:.6g})")
+
+    # A few coarse steps back up the bracket.  Probes that fail only move
+    # the top, so a non-monotonic assignment cannot throw away a scale
+    # already proven.  4% is enough: the final growth pass eats leftover
+    # margin, and each step is a full native pack.
+    hi = S_max if fail_S is None else fail_S
+    lo = best_S
+    for _step in range(5):
+        if rounds >= max_rounds or hi <= lo * 1.04:
+            break
+        mid = (lo + hi) * 0.5
+        if mid <= lo or mid >= hi:
+            break
+        rounds += 1
+        found, _nxt = _try(mid)
+        if found is not None:
+            lo = mid
+            best_S, best_assign = mid, found
+            committed = True
         else:
-            S = max(best_next, 1e-6)
-    raise RuntimeError(
-        "UDIM pack: scale search did not converge after "
-        f"{max_rounds} rounds (S={S:.6g})")
+            hi = mid
+            committed = False
+
+    if not committed:
+        oracle(best_assign, best_S)
+    return best_S, best_assign, rounds, True

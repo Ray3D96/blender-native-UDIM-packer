@@ -73,7 +73,10 @@ class NATIVE_UDIM_PG_settings(PropertyGroup):
         name="Selected Objects",
         description=(
             "Pack every selected mesh object into the same grid; when off, "
-            "only the active object is packed"
+            "only the active object is packed. Ignored while Pack Selected "
+            "Islands is on in edit mode — every mesh in the edit session is "
+            "then considered, so islands selected on other objects are not "
+            "left behind"
         ),
         default=True,
     )
@@ -117,13 +120,22 @@ class NATIVE_UDIM_OT_pack_to_grid(Operator):
         return ob is not None and ob.type == 'MESH'
 
     def _targets(self, context) -> list:
-        # In (multi-)edit mode ``selected_objects`` contains every object
-        # being edited, so the same logic works in both modes.
-        if context.window_manager.native_udim.use_selected:
-            obs = context.selected_objects
+        s = context.window_manager.native_udim
+        # Pack Selected Islands reads a live UV selection.  That selection
+        # can sit on any mesh in the current edit session, so the "Selected
+        # Objects" toggle must not narrow the set down to the active object
+        # — otherwise the option silently ignores every other edited mesh.
+        if s.pack_selected_islands and context.mode == 'EDIT_MESH':
+            obs = list(getattr(context, "objects_in_mode", None)
+                       or context.selected_objects)
+        elif s.use_selected:
+            obs = list(context.selected_objects)
+            if (not obs and context.active_object is not None
+                    and context.active_object.type == 'MESH'):
+                obs = [context.active_object]
         else:
             obs = [context.active_object]
-        return [o for o in obs if o.type == 'MESH']
+        return [o for o in obs if o is not None and o.type == 'MESH']
 
     def execute(self, context):
         # Initialize the undo system and label this whole operation as a

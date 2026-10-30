@@ -17,13 +17,15 @@ islands ever overlap - even when they belong to different objects.
    final writeback.
 3. Solve the layout (:mod:`native_udim_packer.layout`): islands are
    assigned to tiles with sequential first-fit-decreasing (tile 1001 is
-   filled before 1002 opens, and so on), and a shrinking search finds the
+   filled before 1002 opens, and so on), and a bracketed search finds the
    largest global scale ``S*`` for which every tile's content fits.  Each
-   search round *is* a real placement: every used tile is packed with
-   Blender's built-in ``bpy.ops.uv.pack_islands`` (C speed, shape-aware,
-   no overlaps by construction), and the measured post-pack extent of each
-   tile is the feasibility oracle.  The final round leaves the finished
-   layout in place - there is no separate writeback pass.
+   probe *is* a real placement: every used tile is packed with Blender's
+   built-in ``bpy.ops.uv.pack_islands`` (C speed, shape-aware).  Fixed
+   islands (selected-islands mode) are pinned so the native packer places
+   around them, and tiles they already fill are given less capacity so
+   new islands spill onto later tiles instead of stacking.  The measured
+   post-pack extent is the feasibility oracle.  The winning probe is
+   re-run at the end so the meshes match the returned layout.
     4. Re-center + grow: every used tile's content is re-centered on its
        tile center, then all tiles are scaled by one uniform factor limited
        by the tightest tile/axis (``layout.final_growth_factor``), so the
@@ -319,6 +321,139 @@ def _snapshot_uv(me) -> dict[int, list]:
 
 
 # --------------------------------------------------------------------------
+# fixed islands (selected-islands mode): occupancy + pinning
+# --------------------------------------------------------------------------
+
+def _tile_static_plan(state, positions):
+    """Plan fixed islands for the scale search.
+
+    Returns ``(tile_free, statics_by_tile)``.  ``tile_free`` is ``None``
+    when nothing is fixed (every tile is fully available).  Otherwise it
+    is one fraction per tile: ``1`` empty, ``0`` already covered by fixed
+    islands.  ``statics_by_tile[t]`` lists ``(ob, face_index, global_uvs)``
+    for the fixed faces whose island center lies in that tile.  Linked
+    duplicates are recorded once (shared mesh data).
+    """
+    n = len(positions)
+    pos_index = {p: i for i, p in enumerate(positions)}
+    occ = [0.0] * n
+    by_tile: dict[int, list] = {i: [] for i in range(n)}
+    seen_mesh: set = set()
+    any_static = False
+    for s in state:
+        islands = s.get("static_islands") or []
+        if not islands:
+            continue
+        any_static = True
+        did = id(s["ob"].data)
+        if did in seen_mesh:
+            continue
+        seen_mesh.add(did)
+        snap = s["snapshot"]
+        ob = s["ob"]
+        for isl in islands:
+            xs: list = []
+            ys: list = []
+            faces = []
+            for fi in isl.face_indices:
+                uv = snap.get(fi)
+                if not uv:
+                    continue
+                faces.append((fi, uv))
+                for x, y in uv:
+                    xs.append(x)
+                    ys.append(y)
+            if not xs:
+                continue
+            minx, maxx = min(xs), max(xs)
+            miny, maxy = min(ys), max(ys)
+            key = (math.floor((minx + maxx) * 0.5),
+                   math.floor((miny + maxy) * 0.5))
+            t = pos_index.get(key)
+            if t is None:
+                continue
+            occ[t] += max(0.0, maxx - minx) * max(0.0, maxy - miny)
+            for fi, uv in faces:
+                by_tile[t].append((ob, fi, uv))
+    if not any_static:
+        return None, {}
+    free = [max(0.0, 1.0 - min(1.0, a)) for a in occ]
+    return free, by_tile
+
+
+def _pin_statics_local(statics, tu: int, tv: int) -> None:
+    """Move fixed faces into this tile's 0..1 space, select and pin them.
+
+    The native packer only avoids islands it can see.  Shifting fixed
+    content into the same unit square as the islands being packed, then
+    pinning it, makes ``uv.pack_islands`` treat those faces as locked
+    obstacles instead of stacking the new islands on top of them.
+    """
+    by_ob: dict = {}
+    for ob, fi, uv in statics:
+        by_ob.setdefault(ob, []).append((fi, uv))
+    for ob, faces in by_ob.items():
+        bm = bmesh.from_edit_mesh(ob.data)
+        try:
+            uvl = bm.loops.layers.uv.active
+            wanted = {fi: uv for fi, uv in faces}
+            for f in tuple(bm.faces):
+                uv = wanted.get(f.index)
+                if uv is None:
+                    f.select = False
+                    continue
+                f.select = True
+                for l, (x, y) in zip(tuple(f.loops), uv):
+                    l[uvl].uv = (x - tu, y - tv)
+            bmesh.update_edit_mesh(ob.data)
+        finally:
+            bm.free()
+    try:
+        bpy.ops.uv.pin(clear=False)
+    except RuntimeError:
+        pass
+
+
+def _restore_statics(statics) -> None:
+    """Put fixed faces back to their original global UVs and unpin them."""
+    if bpy.context.object is None or bpy.context.object.mode != 'EDIT':
+        return
+    by_ob: dict = {}
+    for ob, fi, uv in statics:
+        by_ob.setdefault(ob, []).append((fi, uv))
+    # Unpin only the faces we pinned, then write the original coordinates
+    # back (a packer that ignored the pin must not get to keep the move).
+    for ob, faces in by_ob.items():
+        bm = bmesh.from_edit_mesh(ob.data)
+        try:
+            wanted = {fi for fi, _uv in faces}
+            for f in tuple(bm.faces):
+                f.select = f.index in wanted
+            bmesh.update_edit_mesh(ob.data)
+        finally:
+            bm.free()
+    try:
+        bpy.ops.uv.pin(clear=True)
+    except RuntimeError:
+        pass
+    for ob, faces in by_ob.items():
+        bm = bmesh.from_edit_mesh(ob.data)
+        try:
+            uvl = bm.loops.layers.uv.active
+            wanted = {fi: uv for fi, uv in faces}
+            for f in tuple(bm.faces):
+                uv = wanted.get(f.index)
+                if uv is None:
+                    continue
+                for l, (x, y) in zip(tuple(f.loops), uv):
+                    l[uvl].uv = (x, y)
+                f.select = False
+            bmesh.update_edit_mesh(ob.data)
+        finally:
+            bm.free()
+
+
+# --------------------------------------------------------------------------
 # one search round: place everything at scale S with the native packer
 # --------------------------------------------------------------------------
 
@@ -359,9 +494,18 @@ def _execute_round(state: list, assign: dict, positions: list, S: float,
         for t in {assign[i._item_index] for i in s["islands"]}:
             members_by_tile.setdefault(t, []).append(s)
 
+    _free, statics_by_tile = _tile_static_plan(state, positions)
+
     for t in sorted(members_by_tile):
         members = members_by_tile[t]
+        tu, tv = positions[t]
+        statics_here = statics_by_tile.get(t, [])
         obs = [s["ob"] for s in members]
+        seen_obs = {ob for ob in obs}
+        for ob, _fi, _uv in statics_here:
+            if ob not in seen_obs:
+                seen_obs.add(ob)
+                obs.append(ob)
         undo_vis: list = []
         for ob in obs:
             undo_vis.extend(_expose_in_view_layer(ob))
@@ -370,7 +514,8 @@ def _execute_round(state: list, assign: dict, positions: list, S: float,
             # is edited together, so the single pack_islands call below sees
             # all of the tile's islands at once and places them with mutual
             # avoidance - content from different objects in a shared tile
-            # can never overlap.
+            # can never overlap.  Objects that only contribute fixed islands
+            # are included so those islands can be pinned as obstacles.
             _enter_multi_edit(obs)
 
             # Write this round's scaled UVs and select exactly each object's
@@ -403,9 +548,34 @@ def _execute_round(state: list, assign: dict, positions: list, S: float,
                 finally:
                     bm.free()
 
-            r = bpy.ops.uv.pack_islands(
+            # Fixed islands become locked obstacles in this tile's 0..1
+            # space.  Restored to their original UVs in the finally below,
+            # including when this round is refused.
+            if statics_here:
+                _pin_statics_local(statics_here, tu, tv)
+                # Re-select the islands actually being packed; pinned faces
+                # stay selected so the packer knows to avoid them.
+                for s in members:
+                    ob = s["ob"]
+                    fset = fsets[ob.name]
+                    bm = bmesh.from_edit_mesh(ob.data)
+                    try:
+                        for f in tuple(bm.faces):
+                            if f.index in fset:
+                                f.select = True
+                        bmesh.update_edit_mesh(ob.data)
+                    finally:
+                        bm.free()
+
+            pack_kwargs = dict(
                 rotate=rotate_90, rotate_method="CARDINAL",
-                margin=margin, scale=False)
+                margin=margin, margin_method="FRACTION",
+                scale=False, udim_source="CLOSEST_UDIM",
+            )
+            if statics_here:
+                pack_kwargs["pin"] = True
+                pack_kwargs["pin_method"] = "LOCKED"
+            r = bpy.ops.uv.pack_islands(**pack_kwargs)
             if r != {'FINISHED'}:
                 # The native operator cancels silently (no report) when its
                 # toolsettings-dependent selection gate finds nothing to
@@ -421,7 +591,6 @@ def _execute_round(state: list, assign: dict, positions: list, S: float,
             # bmesh): read every member's tile-t faces in 0..1 space
             # (pre-offset), measure the union extent, and keep each face's
             # polygon for the exact overlap check below.
-            tu, tv = positions[t]
             minx = miny = math.inf
             maxx = maxy = -math.inf
             face_polys: dict[str, dict[int, list]] = {}
@@ -510,6 +679,8 @@ def _execute_round(state: list, assign: dict, positions: list, S: float,
 
             extents[t] = [minx, miny, maxx, maxy]
         finally:
+            if statics_here:
+                _restore_statics(statics_here)
             _exit_edit()
             for fn in reversed(undo_vis):
                 fn()
@@ -891,6 +1062,7 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
 
     # 3) scale search with the native-pack oracle ----------------------
     positions = _tile_order(grid_x, grid_y)
+    tile_free, _statics_by_tile = _tile_static_plan(state, positions)
 
     def oracle(assign: dict, S: float) -> list:
         return _execute_round(state, assign, positions, S, rotate_90,
@@ -898,7 +1070,7 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
 
     try:
         S_final, assign_final, rounds, feasible = _layout_solve(
-            items, grid_x, grid_y, margin, oracle)
+            items, grid_x, grid_y, margin, oracle, tile_free=tile_free)
     except RuntimeError as exc:
         _restore_snapshots(state)
         _finish(started_in_edit, saved_selection, original_active,

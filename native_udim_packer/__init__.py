@@ -15,7 +15,7 @@ No external engines, binaries or third-party libraries are used.
 bl_info = {
     "name": "Native UDIM Packer",
     "author": "Ray3D96, Qwen3.8 27B UD_6K_M, Deepseek Harness",
-    "version": (0, 3, 0),
+    "version": (0, 3, 1),
     "blender": (5, 2, 0),
     "location": "UV Editor > Sidebar (N) > UDIM tab",
     "description": (

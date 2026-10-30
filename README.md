@@ -30,14 +30,14 @@ native packing to a user-defined UDIM count, with standard UDIM numbering
    `native_udim_packer-X.Y.Z.zip` → enable **Native UDIM Packer**.
 2. **Select** one or more mesh objects that already have a UV map (any
    unwrap works — *Smart UV Project* is a good default).
-3. In the **UV Editor**, select all UVs (`A`) and run *UV > Average
-   Islands Scale*. **Important:** average island scale before use for
-   best results — uneven native island scales are a known rough edge of the
-   current packer (fix planned).
-4. Press `N` and switch the sidebar to the **UDIM** tab.
-5. Set the grid size (tiles along X and Y, e.g. 2×2) and any options you
+3. Press `N` and switch the sidebar to the **UDIM** tab. For even texel
+   density, turn on **Normalize Scale** — that is this addon's Average
+   Islands Scale, and it runs as part of the pack. Leaving it off keeps
+   your current relative island sizes (one oversized island scales
+   everything else down with it). The pack completes either way.
+4. Set the grid size (tiles along X and Y, e.g. 2×2) and any options you
    want, then click **Pack to UDIM Grid**.
-6. **Inspect** the result in the UV editor or an Image Editor with a UDIM
+5. **Inspect** the result in the UV editor or an Image Editor with a UDIM
    tile image — the islands now live in tiles 1001, 1002, ….
 
 See the [addon README](native_udim_packer/README.md) for the full feature
@@ -86,7 +86,7 @@ Expected: `SUMMARY: 58/58 passed`. The suite installs from
    entry's hash against the source.
 3. Run the full e2e suite to green.
 4. Delete the previous release zip from `dist/` — one distinguishable zip per
-   release (current: **0.3.0**).
+   release (current: **0.3.1**).
 5. Install into target Blenders and verify with a fresh background process
    (`verify_install.py`).
 

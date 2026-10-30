@@ -1,4 +1,10 @@
-# Known issues — v0.3.0 RC (reported by user, deferred)
+# Known issues — v0.3.0 RC (reported by user)
+
+Addressed in 0.3.1: the scale search converges instead of dying after 48
+creeping rounds; Pack Selected Islands pins fixed islands and does not
+require Selected Objects in edit mode. Normalize Scale is the in-addon
+Average Islands Scale — skipping it keeps relative sizes (a huge island
+shrinks the rest with it) but the pack completes.
 
 ## 1. Pack breaks unless island scales are averaged first
 User report: running "Pack to UDIM Grid" without first applying an

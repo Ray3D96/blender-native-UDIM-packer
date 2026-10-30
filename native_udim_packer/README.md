@@ -74,7 +74,7 @@ Licensed under GPL v3.0 or later.
 
 1. In Blender open **Edit → Preferences → Add-ons** (or *Extensions* in the
    new-style UI).
-2. Click **Install from Disk…** and select `native_udim_packer-0.3.0.zip`
+2. Click **Install from Disk…** and select `native_udim_packer-0.3.1.zip`
    (or unzip it and point the installer at the `native_udim_packer` folder).
 3. Enable **Native UDIM Packer**.
 
@@ -87,7 +87,7 @@ Preferences.
 > installing. Two ways to verify which build is actually running: the panel
 > shows a `version x.y.z` stamp at the top of the UDIM tab, and the addon
 > prints `Native UDIM Packer v<version> registered` to the console on
-> startup (this release: **0.3.0**).
+> startup (this release: **0.3.1**).
 
 ## Usage
 
@@ -261,6 +261,17 @@ by Blender's own packer.
 
 ## Changelog
 
+- **0.3.1** — the scale search no longer gives up after a long creep.
+  A candidate that overflows or overlaps now drops by a real step and the
+  gap is binary-searched, so packs that used to die with "scale search did
+  not converge after 48 rounds" finish. Margin is a fraction of the tile
+  (what the slider says). In *Pack Selected Islands*, fixed islands are
+  pinned so the native packer goes around them, and a tile they already
+  fill loses capacity so the selection spills onto later tiles instead of
+  stacking on top. That option also no longer requires *Selected Objects*:
+  in edit mode every mesh in the session is considered. Uneven island
+  scales no longer need a manual Average Islands Scale pass for the pack
+  to succeed; turn on *Normalize Scale* when you want even texel density.
 - **0.3.0** — new option *Pack Selected Islands*: pack only the UV islands
   selected in the UV editor (an island counts as selected when at least one
   of its faces is selected); every other island keeps its UVs exactly. In
