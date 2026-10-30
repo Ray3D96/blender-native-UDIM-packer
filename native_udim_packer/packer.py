@@ -78,6 +78,8 @@ from .islands import (
 from .layout import Item as _LayoutItem
 from .layout import PackRefusedError as _PackRefusedError
 from .layout import final_growth_factor as _final_growth_factor
+from .layout import initial_assignment as _initial_assignment
+from .layout import rebalance_candidate as _rebalance_candidate
 from .layout import tile_islands_overlap as _tile_islands_overlap
 from .layout import solve as _layout_solve
 from .layout import tile_order as _tile_order
@@ -911,6 +913,261 @@ def _restore_snapshots(state: list) -> None:
 
 
 # --------------------------------------------------------------------------
+# measured fit + rebalance (no fixed islands)
+# --------------------------------------------------------------------------
+
+_REBALANCE_MOVES = 6
+_REBALANCE_GAIN = 1.05
+
+
+def _pack_tiles_fit(state, by_index, items_by_index, assign, tile_ids,
+                    rotate_90, margin):
+    """Pack ``tile_ids`` with ``uv.pack_islands(scale=True)``.
+
+    Returns ``{tile: {"k", "center", "faces"}}`` or ``None`` when the
+    native packer cancels or the result overlaps.  ``k`` is the uniform
+    scale applied to the reference island size (median over the tile's
+    islands).  ``faces`` maps object name to ``{face_index: [(x, y)]}``
+    in the tile's local 0..1 space.  Caller equalizes scales afterwards.
+    """
+    out = {}
+    for t in tile_ids:
+        members = {}
+        island_refs = []
+        max_dim = 0.0
+        for idx, tile in assign.items():
+            if tile != t:
+                continue
+            isl = by_index[idx]
+            ob = isl.owner
+            members.setdefault(id(ob), ob)
+            ref = max(items_by_index[idx].w, items_by_index[idx].h)
+            if ref > max_dim:
+                max_dim = ref
+            island_refs.append((isl, ref))
+        if not island_refs:
+            continue
+        # Keep the pre-pack cluster inside the first UDIM so scale=True
+        # targets tile 1001 instead of whichever UDIM the raw bounds hit.
+        pre = 0.5 / max_dim if max_dim > 1e-8 else 1.0
+        obs = list(members.values())
+        undo_vis: list = []
+        for ob in obs:
+            undo_vis.extend(_expose_in_view_layer(ob))
+        try:
+            _enter_multi_edit(obs)
+            face_sets: dict[str, set] = {}
+            for ob in obs:
+                face_map = {}
+                for isl, _ref in island_refs:
+                    if isl.owner is not ob:
+                        continue
+                    k_write = isl._s_norm * pre
+                    minx0, miny0 = isl.min_uv
+                    snap = None
+                    for s in state:
+                        if s["ob"] is ob:
+                            snap = s["snapshot"]
+                            break
+                    for fi in isl.face_indices:
+                        uv = snap.get(fi) if snap else None
+                        if not uv:
+                            continue
+                        face_map[fi] = [((x - minx0) * k_write,
+                                         (y - miny0) * k_write) for (x, y) in uv]
+                face_sets[ob.name] = set(face_map)
+                bm = bmesh.from_edit_mesh(ob.data)
+                try:
+                    uvl = bm.loops.layers.uv.active
+                    for f in tuple(bm.faces):
+                        uv_list = face_map.get(f.index)
+                        if uv_list is not None:
+                            for loop, (x, y) in zip(tuple(f.loops), uv_list):
+                                loop[uvl].uv = (x, y)
+                        f.select = f.index in face_map
+                    bmesh.update_edit_mesh(ob.data)
+                finally:
+                    bm.free()
+            result = bpy.ops.uv.pack_islands(
+                rotate=rotate_90, rotate_method="CARDINAL",
+                margin=margin, margin_method="FRACTION",
+                scale=True, udim_source="CLOSEST_UDIM")
+            if result != {'FINISHED'}:
+                return None
+            faces: dict[str, dict] = {}
+            tile_polys: list = []
+            scales: list = []
+            minx = miny = math.inf
+            maxx = maxy = -math.inf
+            for ob in obs:
+                bm = bmesh.from_edit_mesh(ob.data)
+                try:
+                    uvl = bm.loops.layers.uv.active
+                    wanted = face_sets[ob.name]
+                    got: dict[int, list] = {}
+                    for f in tuple(bm.faces):
+                        if f.index not in wanted:
+                            continue
+                        poly = [(loop[uvl].uv.x, loop[uvl].uv.y)
+                                for loop in tuple(f.loops)]
+                        got[f.index] = poly
+                        for x, y in poly:
+                            if x < -0.05 or y < -0.05 or x > 1.05 or y > 1.05:
+                                return None
+                            if x < minx:
+                                minx = x
+                            if x > maxx:
+                                maxx = x
+                            if y < miny:
+                                miny = y
+                            if y > maxy:
+                                maxy = y
+                    faces[ob.name] = got
+                finally:
+                    bm.free()
+            for isl, ref in island_refs:
+                polys = []
+                got = faces.get(isl.owner.name, {})
+                xs: list = []
+                ys: list = []
+                for fi in isl.face_indices:
+                    poly = got.get(fi)
+                    if not poly:
+                        continue
+                    polys.append(poly)
+                    for x, y in poly:
+                        xs.append(x)
+                        ys.append(y)
+                if polys:
+                    tile_polys.append(polys)
+                if xs and ref > 1e-8:
+                    scales.append(max(max(xs) - min(xs), max(ys) - min(ys)) / ref)
+            if len(tile_polys) >= 2 and _tile_islands_overlap(tile_polys):
+                return None
+            if not scales:
+                return None
+            scales.sort()
+            k = scales[len(scales) // 2]
+            if k <= 1e-8:
+                return None
+            out[t] = {
+                "k": k,
+                "center": ((minx + maxx) * 0.5, (miny + maxy) * 0.5),
+                "faces": faces,
+            }
+        finally:
+            _exit_edit()
+            for fn in reversed(undo_vis):
+                fn()
+    return out
+
+
+def _write_equalized(state, by_index, assign, positions, packed, k_min) -> None:
+    """Write the equalized layout.  Every island ends up at scale ``k_min``."""
+    written: set = set()
+    for s in state:
+        ob = s["ob"]
+        if id(ob.data) in written:
+            continue
+        written.add(id(ob.data))
+        bm = bmesh.new()
+        bm.from_mesh(ob.data)
+        try:
+            uvl = bm.loops.layers.uv.active
+            face_uv: dict[int, tuple] = {}
+            for isl in s["islands"]:
+                t = assign.get(isl._item_index)
+                rec = packed.get(t) if t is not None else None
+                if rec is None:
+                    continue
+                got = rec["faces"].get(ob.name)
+                if not got:
+                    continue
+                factor = k_min / rec["k"]
+                cx, cy = rec["center"]
+                tu, tv = positions[t]
+                for fi in isl.face_indices:
+                    poly = got.get(fi)
+                    if poly is None:
+                        continue
+                    face_uv[fi] = tuple(
+                        (tu + cx + (x - cx) * factor,
+                         tv + cy + (y - cy) * factor) for (x, y) in poly)
+            if not face_uv:
+                continue
+            for f in tuple(bm.faces):
+                poly = face_uv.get(f.index)
+                if poly is None:
+                    continue
+                for loop, (x, y) in zip(tuple(f.loops), poly):
+                    loop[uvl].uv = (x, y)
+            bm.to_mesh(ob.data)
+        finally:
+            bm.free()
+
+
+def _fit_and_rebalance(state, items, positions, rotate_90, margin):
+    """Assign, pack each tile once, then move islands off the bottleneck.
+
+    Returns ``(assign, k_min, moves)`` after the equalized UVs have been
+    written, or ``None`` when the native packer cannot fit the set.  The
+    caller falls back to the scale search in that case.  Fixed islands are
+    not handled here.
+    """
+    n_tiles = len(positions)
+    assign = _initial_assignment(items, n_tiles)
+    if assign is None:
+        return None
+    by_index = {}
+    for s in state:
+        for isl in s["islands"]:
+            by_index[isl._item_index] = isl
+    items_by_index = {it.index: it for it in items}
+    used = sorted(set(assign.values()))
+    packed = _pack_tiles_fit(
+        state, by_index, items_by_index, assign, used, rotate_90, margin)
+    if not packed:
+        return None
+    moves = 0
+    for _step in range(_REBALANCE_MOVES):
+        tile_k = {t: rec["k"] for t, rec in packed.items()}
+        move = _rebalance_candidate(assign, items, tile_k, _REBALANCE_GAIN)
+        if move is None:
+            break
+        src, dst, idx = move
+        assign[idx] = dst
+        repack_ids = [t for t in (src, dst)
+                      if any(v == t for v in assign.values())]
+        trial = _pack_tiles_fit(
+            state, by_index, items_by_index, assign, repack_ids,
+            rotate_90, margin)
+        if not trial:
+            assign[idx] = src
+            break
+        new_k = dict(tile_k)
+        if not any(v == src for v in assign.values()):
+            new_k.pop(src, None)
+        else:
+            new_k[src] = trial[src]["k"]
+        new_k[dst] = trial[dst]["k"]
+        old_min = min(tile_k.values())
+        new_min = min(new_k.values())
+        if new_min >= old_min * _REBALANCE_GAIN:
+            if src not in new_k:
+                packed.pop(src, None)
+            else:
+                packed[src] = trial[src]
+            packed[dst] = trial[dst]
+            moves += 1
+        else:
+            assign[idx] = src
+            break
+    k_min = min(rec["k"] for rec in packed.values())
+    _write_equalized(state, by_index, assign, positions, packed, k_min)
+    return assign, k_min, moves
+
+
+# --------------------------------------------------------------------------
 # public pipeline
 # --------------------------------------------------------------------------
 
@@ -1060,28 +1317,40 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
                 if polys:
                     static_polys.append(polys)
 
-    # 3) scale search with the native-pack oracle ----------------------
+    # 3) layout.  With no fixed islands, pack each tile once at
+    #    Blender's own fill scale and move islands off the bottleneck
+    #    tile while texel density stays uniform.  Fixed islands keep the
+    #    scale search, which knows how to pin them as obstacles.
     positions = _tile_order(grid_x, grid_y)
-    tile_free, _statics_by_tile = _tile_static_plan(state, positions)
+    rebalance_moves = 0
+    used_fit = False
+    if not static_polys:
+        fitted = _fit_and_rebalance(
+            state, items, positions, rotate_90, margin)
+        if fitted is not None:
+            assign_final, S_final, rebalance_moves = fitted
+            used_fit = True
+    if not used_fit:
+        tile_free, _statics_by_tile = _tile_static_plan(state, positions)
 
-    def oracle(assign: dict, S: float) -> list:
-        return _execute_round(state, assign, positions, S, rotate_90,
-                              margin, static_polys)
+        def oracle(assign: dict, S: float) -> list:
+            return _execute_round(state, assign, positions, S, rotate_90,
+                                  margin, static_polys)
 
-    try:
-        S_final, assign_final, rounds, feasible = _layout_solve(
-            items, grid_x, grid_y, margin, oracle, tile_free=tile_free)
-    except RuntimeError as exc:
-        _restore_snapshots(state)
-        _finish(started_in_edit, saved_selection, original_active,
-                toolsettings=saved_toolsettings, uv_selection=uv_selection)
-        return {"error": str(exc), "objects": {}, "errors": errors}
-    if not feasible:
-        _restore_snapshots(state)
-        _finish(started_in_edit, saved_selection, original_active,
-                toolsettings=saved_toolsettings, uv_selection=uv_selection)
-        return {"error": "scale search did not converge", "objects": {},
-                "errors": errors}
+        try:
+            S_final, assign_final, _rounds, feasible = _layout_solve(
+                items, grid_x, grid_y, margin, oracle, tile_free=tile_free)
+        except RuntimeError as exc:
+            _restore_snapshots(state)
+            _finish(started_in_edit, saved_selection, original_active,
+                    toolsettings=saved_toolsettings, uv_selection=uv_selection)
+            return {"error": str(exc), "objects": {}, "errors": errors}
+        if not feasible:
+            _restore_snapshots(state)
+            _finish(started_in_edit, saved_selection, original_active,
+                    toolsettings=saved_toolsettings, uv_selection=uv_selection)
+            return {"error": "scale search did not converge", "objects": {},
+                    "errors": errors}
 
     # 3b) re-center + global growth: the final round always leaves slack in
     #     the tiles; grow every tile by one uniform factor (limited by the
@@ -1126,6 +1395,7 @@ def pack_objects(objects: list, grid_x: int = 2, grid_y: int = 2,
         # solved scale times the final re-center/growth factor.
         "global_scale": S_final * stretch,
         "stretch_factor": stretch,
+        "rebalance_moves": rebalance_moves,
         "tiles_used_total": [positions[t] for t in sorted(used_set)],
         "packed_islands": sum(len(s["islands"]) for s in state),
         "untouched_islands": (sum(s.get("untouched_count", 0)

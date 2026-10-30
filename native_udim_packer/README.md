@@ -74,7 +74,7 @@ Licensed under GPL v3.0 or later.
 
 1. In Blender open **Edit → Preferences → Add-ons** (or *Extensions* in the
    new-style UI).
-2. Click **Install from Disk…** and select `native_udim_packer-0.3.1.zip`
+2. Click **Install from Disk…** and select `native_udim_packer-0.3.2.zip`
    (or unzip it and point the installer at the `native_udim_packer` folder).
 3. Enable **Native UDIM Packer**.
 
@@ -87,7 +87,7 @@ Preferences.
 > installing. Two ways to verify which build is actually running: the panel
 > shows a `version x.y.z` stamp at the top of the UDIM tab, and the addon
 > prints `Native UDIM Packer v<version> registered` to the console on
-> startup (this release: **0.3.1**).
+> startup (this release: **0.3.2**).
 
 ## Usage
 
@@ -261,6 +261,13 @@ by Blender's own packer.
 
 ## Changelog
 
+- **0.3.2** — measured tile fit. Each tile is packed once with Blender's
+  own fill (`scale=True`), then islands are moved off the bottleneck tile
+  while every island keeps the same texel density (at most six moves,
+  and only when a move gains at least 5%). The grid you ask for is
+  actually used: a single oversized shell no longer swallows the later
+  tiles. Fixed-island packing still uses the scale search, because those
+  islands have to stay put.
 - **0.3.1** — the scale search no longer gives up after a long creep.
   A candidate that overflows or overlaps now drops by a real step and the
   gap is binary-searched, so packs that used to die with "scale search did

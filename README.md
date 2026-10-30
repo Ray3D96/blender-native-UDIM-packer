@@ -86,7 +86,7 @@ Expected: `SUMMARY: 58/58 passed`. The suite installs from
    entry's hash against the source.
 3. Run the full e2e suite to green.
 4. Delete the previous release zip from `dist/` — one distinguishable zip per
-   release (current: **0.3.1**).
+   release (current: **0.3.2**).
 5. Install into target Blenders and verify with a fresh background process
    (`verify_install.py`).
 

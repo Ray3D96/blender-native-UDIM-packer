@@ -95,6 +95,24 @@ check("ffd tile_free all blocked -> None", a is None, str(a))
 a = L.assign_ffd([I(0, 0.9, 0.9)], 1, 1.0, eta=0.5, tile_free=[1.0])
 check("ffd tile_free 1.0 keeps empty-tile rule", a == {0: 0}, str(a))
 
+# Initial assignment spreads area across the grid and keeps every island.
+spread = [I(k, 0.4, 0.4) for k in range(6)]
+a = L.initial_assignment(spread, 3)
+check("initial assigns every island", a is not None and set(a) == set(range(6)), str(a))
+check("initial uses more than one tile", a is not None and len(set(a.values())) >= 2, str(a))
+check("initial prefix", a is not None and set(a.values()) == set(range(max(a.values()) + 1)), str(a))
+
+# Rebalance: smallest island leaves the bottleneck tile for the emptiest.
+rb_items = [I(0, 1.0, 1.0), I(1, 0.2, 0.2), I(2, 0.5, 0.5)]
+rb_assign = {0: 0, 1: 0, 2: 1}
+move = L.rebalance_candidate(rb_assign, rb_items, {0: 1.0, 1: 2.0})
+check("rebalance moves smallest off the bottleneck", move == (0, 1, 1), str(move))
+check("rebalance stops when tiles are within 5%",
+      L.rebalance_candidate(rb_assign, rb_items, {0: 1.0, 1: 1.04}) is None)
+check("rebalance keeps the last island on a tile",
+      L.rebalance_candidate({0: 0, 1: 1}, [I(0, 1, 1), I(1, 0.2, 0.2)],
+                            {0: 1.0, 1: 3.0}) is None)
+
 # Determinism: same input twice -> same output.
 items = [I(k, 0.3 + 0.01 * k, 0.2 + 0.01 * k) for k in range(20)]
 a1 = L.assign_ffd(items, 4, 1.0)

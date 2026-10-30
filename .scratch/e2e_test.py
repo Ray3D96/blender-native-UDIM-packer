@@ -21,7 +21,7 @@ def check(name, cond, detail=""):
 
 
 # ---------------------------------------------------------------- install --
-ZPATH = "/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.3.1.zip"
+ZPATH = "/mnt/fusion/ai-projects/blender-uv-packer/dist/native_udim_packer-0.3.2.zip"
 r = bpy.ops.preferences.addon_install(filepath=ZPATH)
 check("install from zip", r == {'FINISHED'}, str(r))
 bpy.ops.preferences.addon_enable(module="native_udim_packer")
@@ -49,9 +49,9 @@ _A.register()
 
 has_op = hasattr(bpy.ops.native_udim, "pack_to_grid")
 check("operator registered", has_op)
-check("release version is 0.3.1", tuple(_A.bl_info["version"]) == (0, 3, 1),
+check("release version is 0.3.2", tuple(_A.bl_info["version"]) == (0, 3, 2),
       str(tuple(_A.bl_info["version"])))
-check("VERSION string for panel stamp", _A.VERSION == "0.3.1", _A.VERSION)
+check("VERSION string for panel stamp", _A.VERSION == "0.3.2", _A.VERSION)
 
 # Settings must be a persistent PropertyGroup on the window manager - the
 # only pattern whose widgets are interactive in Blender 5.x (widgets bound
@@ -852,9 +852,13 @@ for (tu, tv), bb in per_tile_bb17.items():
     if w > 1.0 + 1e-4 or h > 1.0 + 1e-4:
         over17 = True
     detail17[(tu, tv)] = (round(w, 3), round(h, 3))
-check("T17 global growth applied (stretch factor > 1)",
-      "error" not in r17 and ok17 and K17 is not None and K17 > 1.0 + 1e-6,
-      f"K={K17} S*={r17.get('global_scale', '?')}")
+# scale=True already fills a tile, so K stays at 1 and the bottleneck is
+# simply maxed.  The older search left slack and grew it; either one is a
+# full tile at uniform density.
+check("T17 bottleneck maxed (grown, or already full)",
+      "error" not in r17 and ok17 and K17 is not None and not over17
+      and (K17 > 1.0 + 1e-6 or max_ext17 >= 1.0 - 1e-3),
+      f"K={K17} max_extent={max_ext17:.5f} S*={r17.get('global_scale', '?')}")
 check("T17 grown content re-centered in every used tile", centers17,
       f"tile_extents={detail17}")
 check("T17 bottleneck axis maxed out at the margin limit",

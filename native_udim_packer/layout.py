@@ -151,6 +151,64 @@ def assign_ffd(items, n_tiles: int, cap: float, eta: float = 0.92,
     return assign
 
 
+def initial_assignment(items, n_tiles: int, tile_free=None, eta: float = 0.85):
+    """Area-balanced starting assignment for the measured-pack path.
+
+    Capacity targets roughly equal bbox-area per tile (early tiles still
+    fill first).  The largest island is always allowed a tile of its own.
+    The cap grows if the geometric fit check rejects the set, so a long
+    thin island is not stuck.  Returns ``None`` when the grid cannot hold
+    the islands at all.
+    """
+    if n_tiles <= 0:
+        return {} if not items else None
+    if not items:
+        return {}
+    total = sum(it.area for it in items)
+    biggest = max(it.area for it in items)
+    # One share per tile.  When a single island is bigger than a share it
+    # still takes an empty tile (the empty-tile rule), and the fill limit
+    # stays at one share so the rest of the grid is actually used.  Using
+    # the big island as the cap instead would swallow the later tiles.
+    share = total / n_tiles
+    cap = max(biggest * 1.001, share, 1e-9)
+    eta_use = min(eta, share / cap)
+    for _ in range(16):
+        found = assign_ffd(items, n_tiles, cap, eta_use, tile_free)
+        if found is not None:
+            return found
+        cap *= 1.5
+        eta_use = min(eta, share / cap) if cap > 0 else eta
+    return None
+
+
+def rebalance_candidate(assign, items, tile_k, min_gain: float = 1.05):
+    """One island to move from the fullest tile toward the emptiest.
+
+    ``tile_k`` maps a used tile index to the uniform scale Blender
+    achieved there.  Smaller scale means the tile is the bottleneck.
+    Returns ``(src, dst, item_index)`` or ``None`` when the tiles are
+    already within ``min_gain`` of each other, or the fullest tile has
+    nothing it can give away.
+
+    Only tiles that already hold islands are destinations, so a move
+    cannot strand one island alone in an unused tile.
+    """
+    if len(tile_k) < 2:
+        return None
+    src = min(tile_k, key=tile_k.get)
+    dst = max(tile_k, key=tile_k.get)
+    if src == dst:
+        return None
+    if tile_k[dst] < tile_k[src] * min_gain:
+        return None
+    on_src = [it for it in items if assign.get(it.index) == src]
+    if len(on_src) < 2:
+        return None
+    victim = min(on_src, key=lambda it: (it.area, it.index))
+    return src, dst, victim.index
+
+
 # ---------------------------------------------------------------------------
 # Exact 2D polygon-overlap predicates (pure Python, no bpy).
 #
