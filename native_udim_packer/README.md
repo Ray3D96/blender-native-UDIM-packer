@@ -10,29 +10,21 @@ Licensed under GPL v3.0 or later.
 ## Features
 
 - **UDIM grid layout** — choose the tile count along U and V (1×1, 2×2, 4×1,
-  3×2, … up to 10×32). Tiles are filled **sequentially**: the packer fills
-  tile 1001 as densely as it can before opening 1002, then 1003, and so on in
-  row-major order — no island is placed in a later tile while an earlier one
-  still has room. A global scale search then makes the islands as large as
-  the grid allows (maximum texel density for the chosen tile count).
+  3×2, … up to 10×32). The grid you set is actually used: one oversized shell
+  takes a tile of its own instead of swallowing every later tile. All islands
+  then share **one** scale, set by the fullest tile, so texel density stays
+  the same across the whole set.
 - **Standard UDIM numbering** — tile (0,0) is UDIM **1001**, tile (1,0) is
   **1002**, …, tile (9,0) is **1010**; each higher row adds 10: row 2 starts
   at **1011**, row 3 at **1021**. X is capped at 10 because a UDIM row is 10
   tiles wide. Every island is shifted by whole integers into its tile's
   `[u, u+1] × [v, v+1]` region.
-- **No overlaps, guaranteed** — each used tile is placed with Blender's own
-  *Pack Islands* algorithm (the built-in `uv.pack_islands` operator), which
-  never lets islands overlap and respects the margin between them. As a
-  second line of defense the addon re-reads the UVs it just wrote and runs an
-  exact polygon-overlap test across every pair of islands in each tile; if a
-  round ever comes back dirty, it is rejected and the content is uniformly
-  shrunk until the pack is clean. The final re-center/growth pass (step 5)
-  applies one similarity transform per tile — a move + uniform scale about
-  the tile's own content center — which preserves all relative geometry
-  inside each tile, so it cannot create an overlap either. The guarantee
-  holds within a tile and across objects: co-packed tiles are verified after
-  every placement round, so an island can never be written on top of another
-  one's space.
+- **No overlaps** — each used tile is placed with Blender's own *Pack
+  Islands* operator (`uv.pack_islands`), then re-read and checked with an
+  exact polygon test. Islands from different objects are packed in the same
+  call when they share a tile, so they cannot land on each other. A final
+  re-center (and, when there is room, one shared growth) is a single
+  move-and-scale per tile, which cannot create a new overlap.
 - **Islands stay intact** — the packer only moves, scales and rotates your
   existing UV islands; it never re-unwraps, cuts new seams or splits an
   island. A multi-face island always ends up whole inside a single tile.
@@ -58,8 +50,7 @@ Licensed under GPL v3.0 or later.
   placement is Blender's C-level packer, called once per used tile. A scene
   that took minutes with early builds of this addon packs in seconds.
 - **Native building blocks only** — `bmesh` seam-aware island detection, a
-  small deterministic Python search (first-fit-decreasing tile assignment +
-  measured global-scale refinement), and the built-in `uv.pack_islands`
+  small deterministic Python assignment, and the built-in `uv.pack_islands`
   operator for placement. No external engines, no subprocess calls: the same
   input always produces the same layout.
 - **Undoable** — the operator is registered with `UNDO` and pushes a labeled
@@ -298,5 +289,5 @@ Blender's own packer.
 
 ## License
 
-GPL-2.0-or-later. Inspired by the UX of UVPackmaster; no UVPackmaster code is
+GPL-3.0-or-later. Inspired by the UX of UVPackmaster; no UVPackmaster code is
 included or called.
