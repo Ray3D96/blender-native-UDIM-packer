@@ -54,10 +54,15 @@ class NATIVE_UDIM_PT_main(Panel):
         row = col.row(align=True)
         row.prop(settings, "udim_x", text="X")
         row.prop(settings, "udim_y", text="Y")
-        total = int(settings.udim_x) * int(settings.udim_y)
-        first = udim_number(0, 0)
-        last = udim_number(int(settings.udim_x) - 1, int(settings.udim_y) - 1)
-        col.label(text=f"{total} tile(s), UDIM {first}–{last}", icon='UV_FACESEL')
+        xs, ys = int(settings.udim_x), int(settings.udim_y)
+        nums = [udim_number(tu, tv) for tv in range(ys) for tu in range(xs)]
+        # A dash reads as "every number in between", which is wrong: a 2×2
+        # grid is 1001, 1002, 1011, 1012, not 1001–1012.
+        if len(nums) <= 4:
+            shown = ", ".join(str(n) for n in nums)
+        else:
+            shown = f"{len(nums)} tiles, from {nums[0]}"
+        col.label(text=shown, icon='UV_FACESEL')
 
         layout.separator()
 

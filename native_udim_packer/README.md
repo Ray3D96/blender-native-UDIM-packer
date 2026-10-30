@@ -105,11 +105,11 @@ Preferences.
 
    | Option            | Meaning                                                                 |
    |-------------------|-------------------------------------------------------------------------|
-   | **UDIM Grid X/Y** | Tile count along U / V. The panel shows the total tile count and UDIM range. |
+   | **UDIM Grid X/Y** | Tile count along U / V. The panel lists the UDIM numbers (a 2×2 is 1001, 1002, 1011, 1012 — rows stride by 10). |
    | **Normalize Scale** | Make every shell proportional to its 3D size — uniform texel density across all packed objects, like *Average Islands Scale*.                  |
    | **Allow 90° Rotation** | Let the built-in packer rotate individual islands by 90° when that saves space. |
    | **Margin**        | Gap kept between islands and around tile edges, as a fraction of one tile (0.01 = 1%). |
-   | **Selected Objects** | Pack all selected meshes; off = active object only.                   |
+   | **Selected Objects** | Pack all selected meshes; off = active object only. Ignored while *Pack Selected Islands* is on in edit mode — every mesh in that edit session is considered. |
    | **Pack Selected Islands** | Pack only the UV islands you have selected in the UV editor; every other island keeps its UVs exactly and is treated as an obstacle the new layout avoids (see below). |
 
 5. Click **Pack to UDIM Grid**. The status bar reports how many islands were
@@ -159,68 +159,38 @@ three tiles (UDIMs 1001, 1002, 1003) set X = 3, Y = 1; for a vertical stack
    density identical for every island while preserving the total UV footprint.
    The factors are only *computed* here — nothing is applied yet, so they can
    never be disturbed by a later rescale.
-3. **Sequential tile assignment** — *all* target objects' islands are pooled
-   (or only the selected ones, in *Pack Selected Islands* mode) and sorted
-   largest-first (first-fit-decreasing). Each island goes to the
-   **earliest** tile that still accepts it: an empty tile always accepts an
-   island whose bounding box spans at most one tile interior; a used tile
-   accepts while its assigned area stays below the current load target
-   (starting at ~92% of capacity — see step 4). The result is exactly the
-   requested filling order — 1001 full before 1002 opens, 1002 full before
-   1003 — with the largest islands anchored in the earliest tiles and
-   smaller ones filling the remainder.
-4. **Global scale search** — the search starts at `S_max`, the scale at which
-   the largest island exactly spans one tile interior (the biggest islands
-   stay as big as physically possible). At every candidate scale the
-   assignment is retried with progressively lower per-tile load targets
-   (~92%, 85%, 75%, … of capacity), greediest first: the greediest filling
-   that still fits wins, so the first UDIM is filled before later ones open —
-   and only when even the greedy filling overflows does content spread to
-   more tiles, which is exactly what lets the largest islands stay large
-   when several UDIMs are available. One *round* = assign the grid at that
-   scale, place every used tile natively (step 5), then **measure** the real
-   post-pack extent of each tile. If every measured extent fits its tile,
-   the scale is final; otherwise the scale is shrunk in proportion to the
-   worst overflow and a fresh round starts again from the greediest target.
-   The search converges in one or a few rounds and always ends with a
-   measured-feasible layout — there is no analytic estimate that could be
-   wrong about what fits.
-5. **Native per-tile placement** — each used tile is packed in a single
-   multi-object edit session that covers *every* object contributing islands
-   to that tile: the scaled UVs of all members are written from the snapshot,
-   only this tile's faces are selected, and exactly one `uv.pack_islands`
-   call places them — shape-aware, cardinal rotation when enabled, margin
-   respected, `scale=False` so sizes are never touched. Packing a tile's
-   islands from different objects in one session is what makes cross-object
-   overlap impossible: the native packer sees every island of the tile and
-   avoids all of them. The packed result is then re-read and verified with
-   an exact polygon-overlap test across every pair of islands in the tile —
-   if it ever comes back dirty, the round is rejected and the scale search
-   shrinks the content instead. Only a clean tile is shifted by whole
-   integers into its `[u, u+1] × [v, v+1]` region. Because placement is
-   done by Blender's own packer and every round is verified afterwards,
-   islands inside a tile cannot overlap — and because the scale search
-   re-measures after every round, no island can end up outside its tile
-   either. After the final round, each used tile's content is re-centered on
-   its tile center; when headroom remains inside the margin box, all tiles
-   are then grown by one uniform factor limited by the tightest tile/axis,
-   so the bottleneck UDIM is maxed out while texel density stays equal
-   across tiles: one similarity transform per tile, no re-packing, no new
-   overlaps.
-6. **Atomicity** — the search rounds *are* the writeback: the final round
-   leaves every object's mesh holding its finished placement, so no second
-   pass can disturb it. If anything fails mid-pack, every object's UVs are
-   restored from the pre-pack snapshot and an error is reported — nothing is
-   ever partially packed.
-7. **Verification** — after writeback, every island's bounds are re-measured:
-   each must sit strictly inside its assigned unit tile. The operator reports
-   the result.
+3. **Tile assignment** — *all* target objects' islands are pooled (or only
+   the selected ones, in *Pack Selected Islands* mode) and sorted
+   largest-first. Each island goes to the earliest tile that still has a
+   share of the total area, so the grid you asked for is actually used: one
+   oversized shell takes a tile of its own instead of swallowing the rest.
+4. **Measured fit, one shared scale** — each used tile is packed once by
+   `uv.pack_islands` with `scale=True`, so Blender fills that tile for real
+   and reports how large the islands got. Every tile is then scaled back to
+   the *smallest* of those scales. Texel density stays identical across
+   UDIMs, and the fullest tile is what sets it. Up to six follow-up moves
+   shift the smallest island off the bottleneck tile onto a looser one, and
+   a move is kept only when the shared scale rises by at least 5%.
+5. **Native per-tile placement** — each tile is packed in one multi-object
+   edit session covering every object that contributes islands to it, so
+   islands from different objects cannot overlap. The result is checked with
+   an exact polygon test. Content is then shifted by whole integers into its
+   UDIM (`1001 + u + v·10`) and re-centered; if any tile still has room
+   inside the margin, every tile grows by the same factor until the tightest
+   axis is full.
+6. **Pack Selected Islands** — this mode keeps the scale search instead of
+   the measured fit, because the islands you did not select must not move.
+   They are pinned so the native packer goes around them, and a tile they
+   already fill is given less capacity. Every candidate is overlap-tested
+   against them; if even the re-center would collide, it is skipped.
+7. **Atomicity** — if anything fails mid-pack, every object's UVs are
+   restored from the pre-pack snapshot and an error is reported. Nothing is
+   left half-packed.
 
-The design follows UVPackmaster's default strategy — a single global uniform
-scale (`MAX_SCALE`) that maximizes island size within the target box, with
-sequential multi-tile filling — reimplemented natively: the assignment and
-scale search are small deterministic Python, while all shape handling is done
-by Blender's own packer.
+The design follows UVPackmaster's default strategy — one global uniform scale
+that maximizes island size inside the tiles you asked for — reimplemented
+natively. Assignment is plain Python; every island's shape is placed by
+Blender's own packer.
 
 ## Notes & limitations
 
